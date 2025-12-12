@@ -367,6 +367,21 @@ export default function Machines() {
                       </div>
                     )}
                   </div>
+                  {machine.documentation_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 w-full"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open(machine.documentation_url!, '_blank');
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Dokumentacja
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </Link>
