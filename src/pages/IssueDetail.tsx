@@ -23,6 +23,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { toast } from 'sonner';
@@ -49,6 +60,7 @@ import {
   Coffee,
   Package,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -322,6 +334,36 @@ export default function IssueDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!issue || !user) return;
+    setIsUpdating(true);
+
+    try {
+      const { error } = await supabase
+        .from('issues')
+        .update({
+          status: 'usuniete',
+        })
+        .eq('id', issue.id);
+
+      if (error) throw error;
+
+      await supabase.from('issue_status_history').insert({
+        issue_id: issue.id,
+        status: 'usuniete',
+        changed_by: user.id,
+        comment: 'Zgłoszenie usunięte',
+      });
+
+      toast.success('Zgłoszenie usunięte');
+      navigate('/issues');
+    } catch (error: any) {
+      toast.error('Błąd', { description: error.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const openEditDateDialog = (field: 'reported_at' | 'accepted_at' | 'started_at' | 'completed_at') => {
     const dateValue = issue?.[field];
     if (dateValue) {
@@ -415,6 +457,7 @@ export default function IssueDetail() {
   const canComplete =
     (hasRole('mechanik') && issue.assigned_to === user?.id && issue.status === 'w_realizacji') ||
     isManager();
+  const canDelete = isManager() && issue.status !== 'usuniete';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -567,11 +610,37 @@ export default function IssueDetail() {
             </Dialog>
           )}
 
-          {canComplete && (
+          {canComplete && issue.status !== 'usuniete' && (
             <Button onClick={handleComplete} disabled={isUpdating} className="bg-success hover:bg-success/90">
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Zakończ
             </Button>
+          )}
+
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isUpdating}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Usuń
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Czy na pewno chcesz usunąć to zgłoszenie?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Zgłoszenie zostanie oznaczone jako usunięte i pojawi się w historii zdarzeń.
+                    Ta akcja może być cofnięta przez administratora.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Usuń zgłoszenie
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>

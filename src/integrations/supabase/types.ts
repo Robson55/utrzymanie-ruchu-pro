@@ -299,7 +299,12 @@ export type Database = {
         | "mechanik"
         | "admin"
       issue_priority: "niski" | "sredni" | "wysoki" | "krytyczny"
-      issue_status: "nowe" | "zaakceptowane" | "w_realizacji" | "zakonczone"
+      issue_status:
+        | "nowe"
+        | "zaakceptowane"
+        | "w_realizacji"
+        | "zakonczone"
+        | "usuniete"
       issue_substatus: "aktywne" | "wstrzymane" | "przerwa" | "brak_czesci"
     }
     CompositeTypes: {
@@ -436,7 +441,13 @@ export const Constants = {
         "admin",
       ],
       issue_priority: ["niski", "sredni", "wysoki", "krytyczny"],
-      issue_status: ["nowe", "zaakceptowane", "w_realizacji", "zakonczone"],
+      issue_status: [
+        "nowe",
+        "zaakceptowane",
+        "w_realizacji",
+        "zakonczone",
+        "usuniete",
+      ],
       issue_substatus: ["aktywne", "wstrzymane", "przerwa", "brak_czesci"],
     },
   },
