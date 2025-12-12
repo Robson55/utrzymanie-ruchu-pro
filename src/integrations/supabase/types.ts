@@ -277,7 +277,19 @@ export type Database = {
         Returns: boolean
       }
       is_manager: { Args: { _user_id: string }; Returns: boolean }
-      round_to_5_minutes: { Args: { minutes: number }; Returns: number }
+      round_to_5_minutes:
+        | {
+            Args: { minutes: number }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.round_to_5_minutes(minutes => int4), public.round_to_5_minutes(minutes => numeric). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { minutes: number }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.round_to_5_minutes(minutes => int4), public.round_to_5_minutes(minutes => numeric). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
     }
     Enums: {
       app_role:
