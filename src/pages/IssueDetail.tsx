@@ -590,19 +590,36 @@ export default function IssueDetail() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Komentarz (opcjonalnie)</Label>
+                    <Label>
+                      Komentarz {(selectedSubstatus === 'wstrzymane' || selectedSubstatus === 'brak_czesci') ? (
+                        <span className="text-destructive">*</span>
+                      ) : '(opcjonalnie)'}
+                    </Label>
                     <Textarea
                       value={statusComment}
                       onChange={(e) => setStatusComment(e.target.value)}
-                      placeholder="Dodaj komentarz..."
+                      placeholder={
+                        selectedSubstatus === 'wstrzymane' 
+                          ? "Podaj powód wstrzymania..." 
+                          : selectedSubstatus === 'brak_czesci'
+                          ? "Podaj jakich części brakuje..."
+                          : "Dodaj komentarz..."
+                      }
+                      className={(selectedSubstatus === 'wstrzymane' || selectedSubstatus === 'brak_czesci') && !statusComment.trim() ? 'border-destructive' : ''}
                     />
+                    {(selectedSubstatus === 'wstrzymane' || selectedSubstatus === 'brak_czesci') && !statusComment.trim() && (
+                      <p className="text-sm text-destructive">Komentarz jest wymagany dla tego statusu</p>
+                    )}
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
                     Anuluj
                   </Button>
-                  <Button onClick={handleChangeSubstatus} disabled={isUpdating}>
+                  <Button 
+                    onClick={handleChangeSubstatus} 
+                    disabled={isUpdating || ((selectedSubstatus === 'wstrzymane' || selectedSubstatus === 'brak_czesci') && !statusComment.trim())}
+                  >
                     Zapisz
                   </Button>
                 </DialogFooter>
