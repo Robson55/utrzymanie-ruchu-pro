@@ -5,13 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
+import { useAuth } from '@/contexts/AuthContext';
 import { Machine, Issue, IssueStatus, IssuePriority, IssueSubstatus } from '@/types/database';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Calendar,
   Cog,
+  Edit,
   ExternalLink,
   Factory,
   FileText,
@@ -26,45 +39,105 @@ import { Link } from 'react-router-dom';
 export default function MachineDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isManager } = useAuth();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editMachineNumber, setEditMachineNumber] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editMachineType, setEditMachineType] = useState('');
+  const [editManufacturer, setEditManufacturer] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDocumentationUrl, setEditDocumentationUrl] = useState('');
 
-      try {
-        // Fetch machine
-        const { data: machineData, error: machineError } = await supabase
-          .from('machines')
-          .select('*')
-          .eq('id', id)
-          .single();
+  const fetchData = async () => {
+    if (!id) return;
 
-        if (machineError) throw machineError;
-        setMachine(machineData as Machine);
+    try {
+      const { data: machineData, error: machineError } = await supabase
+        .from('machines')
+        .select('*')
+        .eq('id', id)
+        .single();
 
-        // Fetch issues for this machine
-        const { data: issuesData } = await supabase
-          .from('issues')
-          .select('*')
-          .eq('machine_id', id)
-          .order('created_at', { ascending: false });
+      if (machineError) throw machineError;
+      setMachine(machineData as Machine);
 
-        if (issuesData) {
-          setIssues(issuesData as Issue[]);
-        }
-      } catch (error) {
-        console.error('Error fetching machine:', error);
-      } finally {
-        setIsLoading(false);
+      const { data: issuesData } = await supabase
+        .from('issues')
+        .select('*')
+        .eq('machine_id', id)
+        .order('created_at', { ascending: false });
+
+      if (issuesData) {
+        setIssues(issuesData as Issue[]);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching machine:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [id]);
+
+  const openEditDialog = () => {
+    if (!machine) return;
+    setEditName(machine.name);
+    setEditMachineNumber(machine.machine_number);
+    setEditLocation(machine.location || '');
+    setEditMachineType(machine.machine_type || '');
+    setEditManufacturer(machine.manufacturer || '');
+    setEditDescription(machine.description || '');
+    setEditDocumentationUrl(machine.documentation_url || '');
+    setEditDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!machine || !editName || !editMachineNumber) {
+      toast.error('Nazwa i numer są wymagane');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('machines')
+        .update({
+          name: editName,
+          machine_number: editMachineNumber,
+          location: editLocation || null,
+          machine_type: editMachineType || null,
+          manufacturer: editManufacturer || null,
+          description: editDescription || null,
+          documentation_url: editDocumentationUrl || null,
+        })
+        .eq('id', machine.id);
+
+      if (error) throw error;
+
+      toast.success('Maszyna zaktualizowana');
+      setEditDialogOpen(false);
+      fetchData();
+    } catch (error: any) {
+      if (error.code === '23505') {
+        toast.error('Maszyna o takim numerze już istnieje');
+      } else {
+        toast.error('Błąd', { description: error.message });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -108,6 +181,12 @@ export default function MachineDetail() {
             {machine.machine_number}
           </p>
         </div>
+        {isManager() && (
+          <Button onClick={openEditDialog}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edytuj
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -254,6 +333,98 @@ export default function MachineDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edytuj maszynę</DialogTitle>
+            <DialogDescription>
+              Zmień dane maszyny {machine.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nazwa *</Label>
+                <Input
+                  id="edit-name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="np. Prasa hydrauliczna"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-number">Numer *</Label>
+                <Input
+                  id="edit-number"
+                  value={editMachineNumber}
+                  onChange={(e) => setEditMachineNumber(e.target.value)}
+                  placeholder="np. PH-001"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-location">Lokalizacja</Label>
+                <Input
+                  id="edit-location"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  placeholder="np. Hala A"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-type">Typ</Label>
+                <Input
+                  id="edit-type"
+                  value={editMachineType}
+                  onChange={(e) => setEditMachineType(e.target.value)}
+                  placeholder="np. CNC"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-manufacturer">Producent</Label>
+              <Input
+                id="edit-manufacturer"
+                value={editManufacturer}
+                onChange={(e) => setEditManufacturer(e.target.value)}
+                placeholder="np. Siemens"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Opis</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Dodatkowe informacje..."
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-documentation">Dokumentacja techniczna (URL)</Label>
+              <Input
+                id="edit-documentation"
+                type="url"
+                value={editDocumentationUrl}
+                onChange={(e) => setEditDocumentationUrl(e.target.value)}
+                placeholder="https://example.com/dokumentacja.pdf"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
