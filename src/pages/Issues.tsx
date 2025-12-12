@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,22 @@ import { Plus, Search, Loader2, Wrench } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
+const STATUS_PAGE_TITLES: Record<string, string> = {
+  nowe: 'Nowe zgłoszenia',
+  zaakceptowane: 'Zaakceptowane zgłoszenia',
+  w_realizacji: 'Zgłoszenia w realizacji',
+  zakonczone: 'Zakończone zgłoszenia',
+};
+
 export default function Issues() {
   const { roles } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+
+  const statusFilter = searchParams.get('status') || 'all';
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -108,13 +117,24 @@ export default function Issues() {
     roles.includes('kierownik_ur') ||
     roles.includes('admin');
 
+  const setStatusFilter = (value: string) => {
+    if (value === 'all') {
+      searchParams.delete('status');
+    } else {
+      searchParams.set('status', value);
+    }
+    setSearchParams(searchParams);
+  };
+
+  const pageTitle = statusFilter !== 'all' ? STATUS_PAGE_TITLES[statusFilter] || 'Zgłoszenia' : 'Wszystkie zgłoszenia';
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Zgłoszenia</h1>
+          <h1 className="text-3xl font-bold text-foreground">{pageTitle}</h1>
           <p className="text-muted-foreground">
-            Lista wszystkich zgłoszeń serwisowych
+            {statusFilter === 'all' ? 'Lista wszystkich zgłoszeń serwisowych' : `Filtrowane według statusu: ${STATUS_LABELS[statusFilter as IssueStatus]}`}
           </p>
         </div>
         {canCreateIssue && (
