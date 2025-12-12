@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
@@ -11,8 +11,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   LayoutDashboard,
   AlertCircle,
@@ -24,24 +32,34 @@ import {
   Users,
   Cog,
   Monitor,
+  ChevronRight,
+  Circle,
+  CircleCheck,
+  PlayCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
 export function AppSidebar() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { profile, roles, signOut, hasRole, isManager } = useAuth();
+
+  const currentStatus = searchParams.get('status');
+
+  const issueStatusItems = [
+    { title: 'Wszystkie', status: null, icon: AlertCircle },
+    { title: 'Nowe', status: 'nowe', icon: Circle },
+    { title: 'Zaakceptowane', status: 'zaakceptowane', icon: CircleCheck },
+    { title: 'W realizacji', status: 'w_realizacji', icon: PlayCircle },
+    { title: 'Zakończone', status: 'zakonczone', icon: CheckCircle2 },
+  ];
 
   const mainMenuItems = [
     {
       title: 'Dashboard',
       url: '/',
       icon: LayoutDashboard,
-      visible: true,
-    },
-    {
-      title: 'Zgłoszenia',
-      url: '/issues',
-      icon: AlertCircle,
       visible: true,
     },
     {
@@ -86,6 +104,8 @@ export function AppSidebar() {
     },
   ];
 
+  const isIssuesActive = location.pathname === '/issues' || location.pathname.startsWith('/issues');
+
   return (
     <Sidebar className="border-r border-sidebar-border">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
@@ -105,6 +125,48 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-sidebar-foreground/60">Menu główne</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem key="dashboard">
+                <SidebarMenuButton asChild isActive={location.pathname === '/'}>
+                  <Link to="/">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Zgłoszenia with submenu */}
+              <Collapsible asChild defaultOpen={isIssuesActive} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton isActive={isIssuesActive}>
+                      <AlertCircle className="h-4 w-4" />
+                      <span>Zgłoszenia</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {issueStatusItems.map((item) => (
+                        <SidebarMenuSubItem key={item.status || 'all'}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={
+                              location.pathname === '/issues' &&
+                              (item.status === null ? !currentStatus : currentStatus === item.status)
+                            }
+                          >
+                            <Link to={item.status ? `/issues?status=${item.status}` : '/issues'}>
+                              <item.icon className="h-3 w-3" />
+                              <span>{item.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
               {mainMenuItems
                 .filter((item) => item.visible)
                 .map((item) => (
