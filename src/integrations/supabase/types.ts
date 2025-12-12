@@ -171,6 +171,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          documentation_url: string | null
           id: string
           installation_date: string | null
           is_active: boolean | null
@@ -184,6 +185,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          documentation_url?: string | null
           id?: string
           installation_date?: string | null
           is_active?: boolean | null
@@ -197,6 +199,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          documentation_url?: string | null
           id?: string
           installation_date?: string | null
           is_active?: boolean | null
