@@ -53,6 +53,18 @@ const LOCATION_OPTIONS = [
 
 const MACHINE_TYPE_OPTIONS = ['INJ', 'ASS', 'PRI'];
 
+const MANUFACTURER_OPTIONS = [
+  'PSG',
+  'Sumitomo',
+  'Engel',
+  'Arburg',
+  'Netstal',
+  'Lamfi',
+  'Caprint',
+  'Bortolinkemo',
+  'Grun&Koder',
+];
+
 export default function MachineDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -415,12 +427,18 @@ export default function MachineDetail() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-manufacturer">Producent</Label>
-              <Input
-                id="edit-manufacturer"
-                value={editManufacturer}
-                onChange={(e) => setEditManufacturer(e.target.value)}
-                placeholder="np. Siemens"
-              />
+              <Select value={editManufacturer} onValueChange={setEditManufacturer}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz producenta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MANUFACTURER_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Opis</Label>
