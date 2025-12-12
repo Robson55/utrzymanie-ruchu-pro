@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -47,6 +48,7 @@ import {
   Pause,
   Coffee,
   Package,
+  Pencil,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -68,6 +70,12 @@ export default function IssueDetail() {
   const [selectedMechanic, setSelectedMechanic] = useState('');
   const [selectedSubstatus, setSelectedSubstatus] = useState<IssueSubstatus>('aktywne');
   const [statusComment, setStatusComment] = useState('');
+  
+  // Date edit state
+  const [editDateDialogOpen, setEditDateDialogOpen] = useState(false);
+  const [editDateField, setEditDateField] = useState<'reported_at' | 'accepted_at' | 'started_at' | 'completed_at'>('reported_at');
+  const [editDateValue, setEditDateValue] = useState('');
+  const [editTimeValue, setEditTimeValue] = useState('');
 
   useEffect(() => {
     const fetchIssue = async () => {
@@ -314,6 +322,58 @@ export default function IssueDetail() {
     }
   };
 
+  const openEditDateDialog = (field: 'reported_at' | 'accepted_at' | 'started_at' | 'completed_at') => {
+    const dateValue = issue?.[field];
+    if (dateValue) {
+      const date = new Date(dateValue);
+      setEditDateValue(format(date, 'yyyy-MM-dd'));
+      setEditTimeValue(format(date, 'HH:mm'));
+    } else {
+      setEditDateValue(format(new Date(), 'yyyy-MM-dd'));
+      setEditTimeValue(format(new Date(), 'HH:mm'));
+    }
+    setEditDateField(field);
+    setEditDateDialogOpen(true);
+  };
+
+  const handleUpdateTimestamp = async () => {
+    if (!issue || !user) return;
+    setIsUpdating(true);
+
+    try {
+      const newDateTime = new Date(`${editDateValue}T${editTimeValue}`).toISOString();
+      
+      const { error } = await supabase
+        .from('issues')
+        .update({ [editDateField]: newDateTime })
+        .eq('id', issue.id);
+
+      if (error) throw error;
+
+      const fieldLabels: Record<string, string> = {
+        reported_at: 'datę zgłoszenia',
+        accepted_at: 'datę akceptacji',
+        started_at: 'datę rozpoczęcia',
+        completed_at: 'datę zakończenia',
+      };
+
+      await supabase.from('issue_status_history').insert({
+        issue_id: issue.id,
+        status: issue.status as IssueStatus,
+        changed_by: user.id,
+        comment: `Zmieniono ${fieldLabels[editDateField]} na ${format(new Date(newDateTime), 'dd.MM.yyyy HH:mm', { locale: pl })}`,
+      });
+
+      toast.success('Data zaktualizowana');
+      setEditDateDialogOpen(false);
+      window.location.reload();
+    } catch (error: any) {
+      toast.error('Błąd', { description: error.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const formatTime = (minutes: number | null) => {
     if (!minutes) return '-';
     const hours = Math.floor(minutes / 60);
@@ -323,6 +383,8 @@ export default function IssueDetail() {
     }
     return `${mins}min`;
   };
+
+  const canEditTimestamps = isManager() || (hasRole('mechanik') && issue?.assigned_to === user?.id);
 
   if (isLoading) {
     return (
@@ -569,46 +631,74 @@ export default function IssueDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label className="text-muted-foreground text-sm">Zgłoszono</Label>
-              <p className="font-medium">
-                {format(new Date(issue.reported_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
-              </p>
+            <div className="flex items-start justify-between">
+              <div>
+                <Label className="text-muted-foreground text-sm">Zgłoszono</Label>
+                <p className="font-medium">
+                  {format(new Date(issue.reported_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                </p>
+              </div>
+              {canEditTimestamps && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDateDialog('reported_at')}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {issue.accepted_at && (
-              <div>
-                <Label className="text-muted-foreground text-sm">Zaakceptowano</Label>
-                <p className="font-medium">
-                  {format(new Date(issue.accepted_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Czas reakcji: {formatTime(issue.reaction_time_minutes)}
-                </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Zaakceptowano</Label>
+                  <p className="font-medium">
+                    {format(new Date(issue.accepted_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Czas reakcji: {formatTime(issue.reaction_time_minutes)}
+                  </p>
+                </div>
+                {canEditTimestamps && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDateDialog('accepted_at')}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
 
             {issue.started_at && (
-              <div>
-                <Label className="text-muted-foreground text-sm">Rozpoczęto</Label>
-                <p className="font-medium">
-                  {format(new Date(issue.started_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Czas do startu: {formatTime(issue.assignment_time_minutes)}
-                </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Rozpoczęto</Label>
+                  <p className="font-medium">
+                    {format(new Date(issue.started_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Czas do startu: {formatTime(issue.assignment_time_minutes)}
+                  </p>
+                </div>
+                {canEditTimestamps && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDateDialog('started_at')}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
 
             {issue.completed_at && (
-              <div>
-                <Label className="text-muted-foreground text-sm">Zakończono</Label>
-                <p className="font-medium">
-                  {format(new Date(issue.completed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Czas realizacji: {formatTime(issue.work_time_minutes)}
-                </p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Zakończono</Label>
+                  <p className="font-medium">
+                    {format(new Date(issue.completed_at), 'dd.MM.yyyy HH:mm', { locale: pl })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Czas realizacji: {formatTime(issue.work_time_minutes)}
+                  </p>
+                </div>
+                {canEditTimestamps && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDateDialog('completed_at')}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
@@ -659,6 +749,45 @@ export default function IssueDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Date Dialog */}
+      <Dialog open={editDateDialogOpen} onOpenChange={setEditDateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edytuj datę i godzinę</DialogTitle>
+            <DialogDescription>
+              Zmień datę i godzinę zdarzenia
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={editDateValue}
+                onChange={(e) => setEditDateValue(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Godzina</Label>
+              <Input
+                type="time"
+                value={editTimeValue}
+                onChange={(e) => setEditTimeValue(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDateDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleUpdateTimestamp} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
