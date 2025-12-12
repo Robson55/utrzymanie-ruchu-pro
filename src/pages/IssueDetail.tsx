@@ -74,21 +74,43 @@ export default function IssueDetail() {
       if (!id) return;
 
       try {
-        // Fetch issue with relations
+        // Fetch issue with machine
         const { data: issueData, error: issueError } = await supabase
           .from('issues')
           .select(`
             *,
-            machine:machines(*),
-            reporter:profiles!issues_reported_by_fkey(*),
-            acceptor:profiles!issues_accepted_by_fkey(*),
-            assignee:profiles!issues_assigned_to_fkey(*)
+            machine:machines(*)
           `)
           .eq('id', id)
           .single();
 
         if (issueError) throw issueError;
-        setIssue(issueData as unknown as Issue);
+
+        // Fetch related profiles separately
+        const profileIds = [
+          issueData.reported_by,
+          issueData.accepted_by,
+          issueData.assigned_to,
+        ].filter(Boolean);
+
+        let profiles: Record<string, any> = {};
+        if (profileIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', profileIds);
+          
+          if (profilesData) {
+            profiles = profilesData.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+          }
+        }
+
+        setIssue({
+          ...issueData,
+          reporter: profiles[issueData.reported_by] || null,
+          acceptor: profiles[issueData.accepted_by] || null,
+          assignee: profiles[issueData.assigned_to] || null,
+        } as unknown as Issue);
 
         // Fetch status history
         const { data: historyData } = await supabase
