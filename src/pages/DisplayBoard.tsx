@@ -21,23 +21,31 @@ export default function DisplayBoard() {
   const fetchData = async () => {
     try {
       // Fetch mechanics
-      const { data: mechanicsRoles } = await supabase
+      const { data: mechanicsRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'mechanik');
 
-      if (!mechanicsRoles) return;
+      console.log('Mechanics roles:', mechanicsRoles, 'Error:', rolesError);
+
+      if (!mechanicsRoles || mechanicsRoles.length === 0) {
+        console.log('No mechanics found');
+        setIsLoading(false);
+        return;
+      }
 
       const mechanicIds = mechanicsRoles.map((m) => m.user_id);
 
       // Fetch profiles
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .in('id', mechanicIds);
 
+      console.log('Profiles:', profiles, 'Error:', profilesError);
+
       // Fetch active issues (excluding deleted and completed)
-      const { data: issues } = await supabase
+      const { data: issues, error: issuesError } = await supabase
         .from('issues')
         .select(`
           *,
@@ -46,6 +54,8 @@ export default function DisplayBoard() {
         .in('status', ['zaakceptowane', 'w_realizacji'])
         .not('assigned_to', 'is', null)
         .order('priority', { ascending: false });
+
+      console.log('Issues:', issues, 'Error:', issuesError);
 
       if (profiles && issues) {
         const result: MechanicWithIssues[] = profiles.map((profile) => ({
@@ -61,6 +71,7 @@ export default function DisplayBoard() {
           return (a.mechanic.full_name || '').localeCompare(b.mechanic.full_name || '');
         });
 
+        console.log('Final result:', result);
         setMechanicsWithIssues(result);
       }
 
