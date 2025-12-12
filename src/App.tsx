@@ -17,6 +17,7 @@ import MachineDetail from "@/pages/MachineDetail";
 import MyTasks from "@/pages/MyTasks";
 import Users from "@/pages/Users";
 import Reports from "@/pages/Reports";
+import DisplayBoard from "@/pages/DisplayBoard";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/display" element={<DisplayBoard />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/issues" element={<Issues />} />
