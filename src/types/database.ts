@@ -1,6 +1,6 @@
 export type AppRole = 'kierownik_zmiany' | 'kontrola_jakosci' | 'kierownik_ur' | 'mechanik' | 'admin';
 
-export type IssueStatus = 'nowe' | 'zaakceptowane' | 'w_realizacji' | 'zakonczone';
+export type IssueStatus = 'nowe' | 'zaakceptowane' | 'w_realizacji' | 'zakonczone' | 'usuniete';
 
 export type IssueSubstatus = 'aktywne' | 'wstrzymane' | 'przerwa' | 'brak_czesci';
 
@@ -92,6 +92,7 @@ export const STATUS_LABELS: Record<IssueStatus, string> = {
   zaakceptowane: 'Zaakceptowane',
   w_realizacji: 'W realizacji',
   zakonczone: 'Zakończone',
+  usuniete: 'Usunięte',
 };
 
 export const SUBSTATUS_LABELS: Record<IssueSubstatus, string> = {

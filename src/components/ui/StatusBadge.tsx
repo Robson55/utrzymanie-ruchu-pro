@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { IssueStatus, IssueSubstatus, STATUS_LABELS, SUBSTATUS_LABELS } from '@/types/database';
-import { Circle, CheckCircle2, PlayCircle, Pause, Coffee, Package } from 'lucide-react';
+import { Circle, CheckCircle2, PlayCircle, Pause, Coffee, Package, Trash2 } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: IssueStatus;
@@ -24,6 +24,10 @@ const statusConfig: Record<IssueStatus, { icon: typeof Circle; className: string
   zakonczone: {
     icon: CheckCircle2,
     className: 'bg-status-completed/10 text-status-completed border-status-completed/20',
+  },
+  usuniete: {
+    icon: Trash2,
+    className: 'bg-destructive/10 text-destructive border-destructive/20',
   },
 };
 
