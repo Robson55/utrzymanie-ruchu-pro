@@ -38,6 +38,18 @@ const LOCATION_OPTIONS = [
 
 const MACHINE_TYPE_OPTIONS = ['INJ', 'ASS', 'PRI'];
 
+const MANUFACTURER_OPTIONS = [
+  'PSG',
+  'Sumitomo',
+  'Engel',
+  'Arburg',
+  'Netstal',
+  'Lamfi',
+  'Caprint',
+  'Bortolinkemo',
+  'Grun&Koder',
+];
+
 export default function Machines() {
   const { isManager } = useAuth();
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -216,12 +228,18 @@ export default function Machines() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="manufacturer">Producent</Label>
-                    <Input
-                      id="manufacturer"
-                      value={manufacturer}
-                      onChange={(e) => setManufacturer(e.target.value)}
-                      placeholder="np. Siemens"
-                    />
+                    <Select value={manufacturer} onValueChange={setManufacturer}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Wybierz producenta" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MANUFACTURER_OPTIONS.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="description">Opis</Label>
