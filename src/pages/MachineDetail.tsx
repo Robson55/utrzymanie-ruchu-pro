@@ -15,6 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +42,14 @@ import {
 import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+
+const LOCATION_OPTIONS = [
+  'Nowa hala',
+  'Stara hala',
+  'Pośrednia hala',
+  'Drukarnia',
+  'Hala składarek',
+];
 
 export default function MachineDetail() {
   const { id } = useParams<{ id: string }>();
@@ -367,12 +382,18 @@ export default function MachineDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-location">Lokalizacja</Label>
-                <Input
-                  id="edit-location"
-                  value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                  placeholder="np. Hala A"
-                />
+                <Select value={editLocation} onValueChange={setEditLocation}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz lokalizację" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_OPTIONS.map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-type">Typ</Label>
