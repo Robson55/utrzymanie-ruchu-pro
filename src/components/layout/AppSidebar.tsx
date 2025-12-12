@@ -129,7 +129,7 @@ export function AppSidebar() {
                 <SidebarMenuButton asChild isActive={location.pathname === '/'}>
                   <Link to="/">
                     <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
+                    <span>Tablica</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
