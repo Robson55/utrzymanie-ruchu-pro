@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { Machine } from '@/types/database';
 import { toast } from 'sonner';
-import { Plus, Search, Loader2, Cog, MapPin, Factory } from 'lucide-react';
+import { Plus, Search, Loader2, Cog, MapPin, Factory, FileText } from 'lucide-react';
 
 export default function Machines() {
   const { isManager } = useAuth();
@@ -36,6 +36,7 @@ export default function Machines() {
   const [machineType, setMachineType] = useState('');
   const [manufacturer, setManufacturer] = useState('');
   const [description, setDescription] = useState('');
+  const [documentationUrl, setDocumentationUrl] = useState('');
 
   useEffect(() => {
     fetchMachines();
@@ -75,6 +76,7 @@ export default function Machines() {
         machine_type: machineType || null,
         manufacturer: manufacturer || null,
         description: description || null,
+        documentation_url: documentationUrl || null,
       });
 
       if (error) throw error;
@@ -101,6 +103,7 @@ export default function Machines() {
     setMachineType('');
     setManufacturer('');
     setDescription('');
+    setDocumentationUrl('');
   };
 
   const filteredMachines = machines.filter((machine) => {
@@ -199,6 +202,16 @@ export default function Machines() {
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Dodatkowe informacje..."
                       rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="documentation">Dokumentacja techniczna (URL)</Label>
+                    <Input
+                      id="documentation"
+                      type="url"
+                      value={documentationUrl}
+                      onChange={(e) => setDocumentationUrl(e.target.value)}
+                      placeholder="https://example.com/dokumentacja.pdf"
                     />
                   </div>
                 </div>

@@ -12,7 +12,9 @@ import {
   ArrowLeft,
   Calendar,
   Cog,
+  ExternalLink,
   Factory,
+  FileText,
   Loader2,
   MapPin,
   Wrench,
@@ -158,6 +160,22 @@ export default function MachineDetail() {
               <div>
                 <Label className="text-muted-foreground">Opis</Label>
                 <p className="mt-1">{machine.description}</p>
+              </div>
+            )}
+
+            {machine.documentation_url && (
+              <div>
+                <Label className="text-muted-foreground">Dokumentacja techniczna</Label>
+                <a
+                  href={machine.documentation_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex items-center gap-2 text-primary hover:underline"
+                >
+                  <FileText className="h-4 w-4" />
+                  Otwórz dokumentację
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             )}
           </CardContent>
