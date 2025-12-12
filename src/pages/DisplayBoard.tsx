@@ -26,10 +26,7 @@ export default function DisplayBoard() {
         .select('user_id')
         .eq('role', 'mechanik');
 
-      console.log('Mechanics roles:', mechanicsRoles, 'Error:', rolesError);
-
       if (!mechanicsRoles || mechanicsRoles.length === 0) {
-        console.log('No mechanics found');
         setIsLoading(false);
         return;
       }
@@ -42,7 +39,7 @@ export default function DisplayBoard() {
         .select('*')
         .in('id', mechanicIds);
 
-      console.log('Profiles:', profiles, 'Error:', profilesError);
+      
 
       // Fetch active issues (excluding deleted and completed)
       const { data: issues, error: issuesError } = await supabase
@@ -55,7 +52,7 @@ export default function DisplayBoard() {
         .not('assigned_to', 'is', null)
         .order('priority', { ascending: false });
 
-      console.log('Issues:', issues, 'Error:', issuesError);
+      
 
       if (profiles && issues) {
         const result: MechanicWithIssues[] = profiles.map((profile) => ({
@@ -71,7 +68,7 @@ export default function DisplayBoard() {
           return (a.mechanic.full_name || '').localeCompare(b.mechanic.full_name || '');
         });
 
-        console.log('Final result:', result);
+        
         setMechanicsWithIssues(result);
       }
 
