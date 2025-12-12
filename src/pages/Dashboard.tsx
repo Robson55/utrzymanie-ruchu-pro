@@ -87,6 +87,7 @@ export default function Dashboard() {
       icon: AlertCircle,
       className: 'text-status-new',
       bgClassName: 'bg-status-new/10',
+      link: '/issues?status=nowe',
     },
     {
       title: 'Zaakceptowane',
@@ -94,6 +95,7 @@ export default function Dashboard() {
       icon: CheckCircle2,
       className: 'text-status-accepted',
       bgClassName: 'bg-status-accepted/10',
+      link: '/issues?status=zaakceptowane',
     },
     {
       title: 'W realizacji',
@@ -101,6 +103,7 @@ export default function Dashboard() {
       icon: PlayCircle,
       className: 'text-status-in-progress',
       bgClassName: 'bg-status-in-progress/10',
+      link: '/issues?status=w_realizacji',
     },
     {
       title: 'Zakończone',
@@ -108,6 +111,7 @@ export default function Dashboard() {
       icon: CheckCircle2,
       className: 'text-status-completed',
       bgClassName: 'bg-status-completed/10',
+      link: '/issues?status=zakonczone',
     },
   ];
 
@@ -121,7 +125,7 @@ export default function Dashboard() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-foreground">Tablica</h1>
           <p className="text-muted-foreground">
             Przegląd systemu utrzymania ruchu
           </p>
@@ -139,19 +143,21 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (
-          <Card key={stat.title} className="border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`p-2 rounded-lg ${stat.bgClassName}`}>
-                <stat.icon className={`h-4 w-4 ${stat.className}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{isLoading ? '...' : stat.value}</div>
-            </CardContent>
-          </Card>
+          <Link key={stat.title} to={stat.link}>
+            <Card className="border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <div className={`p-2 rounded-lg ${stat.bgClassName}`}>
+                  <stat.icon className={`h-4 w-4 ${stat.className}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{isLoading ? '...' : stat.value}</div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
