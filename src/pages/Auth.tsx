@@ -90,7 +90,7 @@ export default function Auth() {
             <Wrench className="h-8 w-8" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">CMMS</h1>
+            <h1 className="text-2xl font-bold text-foreground">BERICAP</h1>
             <p className="text-sm text-muted-foreground">System Utrzymania Ruchu</p>
           </div>
         </div>

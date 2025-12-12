@@ -86,7 +86,7 @@ export function AppSidebar() {
             <Wrench className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-bold text-sidebar-foreground">CMMS</h1>
+            <h1 className="font-bold text-sidebar-foreground">BERICAP</h1>
             <p className="text-xs text-sidebar-foreground/60">Utrzymanie Ruchu</p>
           </div>
         </div>
