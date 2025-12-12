@@ -23,6 +23,7 @@ import {
   LogOut,
   Users,
   Cog,
+  Monitor,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -69,6 +70,13 @@ export function AppSidebar() {
       url: '/users',
       icon: Users,
       visible: hasRole('admin'),
+    },
+    {
+      title: 'Tablica zleceń',
+      url: '/display',
+      icon: Monitor,
+      visible: isManager(),
+      external: true,
     },
     {
       title: 'Ustawienia',
@@ -129,10 +137,17 @@ export function AppSidebar() {
                         asChild
                         isActive={location.pathname === item.url}
                       >
-                        <Link to={item.url}>
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
+                        {item.external ? (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </a>
+                        ) : (
+                          <Link to={item.url}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        )}
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
