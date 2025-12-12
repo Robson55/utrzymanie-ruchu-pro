@@ -36,6 +36,8 @@ const LOCATION_OPTIONS = [
   'Hala składarek',
 ];
 
+const MACHINE_TYPE_OPTIONS = ['INJ', 'ASS', 'PRI'];
+
 export default function Machines() {
   const { isManager } = useAuth();
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -198,12 +200,18 @@ export default function Machines() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="type">Typ</Label>
-                      <Input
-                        id="type"
-                        value={machineType}
-                        onChange={(e) => setMachineType(e.target.value)}
-                        placeholder="np. CNC"
-                      />
+                      <Select value={machineType} onValueChange={setMachineType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Wybierz typ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MACHINE_TYPE_OPTIONS.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="space-y-2">

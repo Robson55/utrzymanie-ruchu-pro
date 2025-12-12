@@ -51,6 +51,8 @@ const LOCATION_OPTIONS = [
   'Hala składarek',
 ];
 
+const MACHINE_TYPE_OPTIONS = ['INJ', 'ASS', 'PRI'];
+
 export default function MachineDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -397,12 +399,18 @@ export default function MachineDetail() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-type">Typ</Label>
-                <Input
-                  id="edit-type"
-                  value={editMachineType}
-                  onChange={(e) => setEditMachineType(e.target.value)}
-                  placeholder="np. CNC"
-                />
+                <Select value={editMachineType} onValueChange={setEditMachineType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Wybierz typ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MACHINE_TYPE_OPTIONS.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
