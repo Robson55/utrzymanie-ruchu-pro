@@ -41,9 +41,7 @@ export default function Issues() {
           .from('issues')
           .select(`
             *,
-            machine:machines(name, machine_number),
-            reporter:profiles!issues_reported_by_fkey(full_name),
-            assignee:profiles!issues_assigned_to_fkey(full_name)
+            machine:machines(name, machine_number)
           `)
           .order('created_at', { ascending: false });
 
@@ -58,7 +56,31 @@ export default function Issues() {
         const { data, error } = await query;
 
         if (error) throw error;
-        setIssues(data as unknown as Issue[]);
+
+        // Fetch related profiles separately
+        const reporterIds = [...new Set(data?.map(i => i.reported_by).filter(Boolean) || [])];
+        const assigneeIds = [...new Set(data?.map(i => i.assigned_to).filter(Boolean) || [])];
+        const allProfileIds = [...new Set([...reporterIds, ...assigneeIds])];
+
+        let profiles: Record<string, any> = {};
+        if (allProfileIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', allProfileIds);
+          
+          if (profilesData) {
+            profiles = profilesData.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+          }
+        }
+
+        const issuesWithProfiles = data?.map(issue => ({
+          ...issue,
+          reporter: profiles[issue.reported_by] || null,
+          assignee: profiles[issue.assigned_to] || null,
+        })) || [];
+
+        setIssues(issuesWithProfiles as unknown as Issue[]);
       } catch (error) {
         console.error('Error fetching issues:', error);
       } finally {
