@@ -16,10 +16,25 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { Machine } from '@/types/database';
 import { toast } from 'sonner';
 import { Plus, Search, Loader2, Cog, MapPin, Factory, FileText } from 'lucide-react';
+
+const LOCATION_OPTIONS = [
+  'Nowa hala',
+  'Stara hala',
+  'Pośrednia hala',
+  'Drukarnia',
+  'Hala składarek',
+];
 
 export default function Machines() {
   const { isManager } = useAuth();
@@ -168,12 +183,18 @@ export default function Machines() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="location">Lokalizacja</Label>
-                      <Input
-                        id="location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="np. Hala A"
-                      />
+                      <Select value={location} onValueChange={setLocation}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Wybierz lokalizację" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LOCATION_OPTIONS.map((loc) => (
+                            <SelectItem key={loc} value={loc}>
+                              {loc}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="type">Typ</Label>
