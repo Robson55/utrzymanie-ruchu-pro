@@ -47,9 +47,10 @@ export default function Users() {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Edit roles dialog
+  // Edit user dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithRoles | null>(null);
+  const [editFullName, setEditFullName] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -103,8 +104,9 @@ export default function Users() {
     }
   };
 
-  const handleEditRoles = (user: UserWithRoles) => {
+  const handleEditUser = (user: UserWithRoles) => {
     setEditingUser(user);
+    setEditFullName(user.full_name || '');
     setSelectedRoles(user.roles);
     setEditDialogOpen(true);
   };
@@ -121,11 +123,24 @@ export default function Users() {
     }
   };
 
-  const handleSaveRoles = async () => {
+  const handleSaveUser = async () => {
     if (!editingUser) return;
+    if (!editFullName.trim()) {
+      toast.error('Imię i nazwisko jest wymagane');
+      return;
+    }
     setIsSaving(true);
 
     try {
+      // Update profile name
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: editFullName.trim() })
+        .eq('id', editingUser.id);
+
+      if (profileError) throw profileError;
+
+      // Update roles
       await supabase
         .from('user_roles')
         .delete()
@@ -142,7 +157,7 @@ export default function Users() {
         if (error) throw error;
       }
 
-      toast.success('Role zaktualizowane');
+      toast.success('Dane użytkownika zaktualizowane');
       setEditDialogOpen(false);
       fetchUsers();
     } catch (error: any) {
@@ -280,11 +295,11 @@ export default function Users() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEditRoles(user)}
+                    onClick={() => handleEditUser(user)}
                     disabled={user.id === currentUser?.id}
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    Edytuj role
+                    Edytuj
                   </Button>
                 </div>
               </CardContent>
@@ -293,39 +308,51 @@ export default function Users() {
         </div>
       )}
 
-      {/* Edit Roles Dialog */}
+      {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edytuj role</DialogTitle>
+            <DialogTitle>Edytuj użytkownika</DialogTitle>
             <DialogDescription>
-              Zarządzaj rolami użytkownika: {editingUser?.full_name || editingUser?.email}
+              Edytuj dane użytkownika: {extractUsername(editingUser?.email)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {allRoles.map((role) => (
-              <div key={role} className="flex items-start space-x-3">
-                <Checkbox
-                  id={`edit-${role}`}
-                  checked={selectedRoles.includes(role)}
-                  onCheckedChange={() => toggleRole(role)}
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <Label htmlFor={`edit-${role}`} className="cursor-pointer font-medium">
-                    {ROLE_LABELS[role]}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {ROLE_DESCRIPTIONS[role]}
-                  </p>
+            <div className="space-y-2">
+              <Label htmlFor="editFullName">Imię i nazwisko *</Label>
+              <Input
+                id="editFullName"
+                placeholder="Jan Kowalski"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-3">
+              <Label>Role</Label>
+              {allRoles.map((role) => (
+                <div key={role} className="flex items-start space-x-3">
+                  <Checkbox
+                    id={`edit-${role}`}
+                    checked={selectedRoles.includes(role)}
+                    onCheckedChange={() => toggleRole(role)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor={`edit-${role}`} className="cursor-pointer font-medium">
+                      {ROLE_LABELS[role]}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {ROLE_DESCRIPTIONS[role]}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Anuluj
             </Button>
-            <Button onClick={handleSaveRoles} disabled={isSaving}>
+            <Button onClick={handleSaveUser} disabled={isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Zapisz
             </Button>
