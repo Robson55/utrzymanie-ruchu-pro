@@ -426,7 +426,7 @@ export default function IssueDetail() {
     return `${mins}min`;
   };
 
-  const canEditTimestamps = isManager() || (hasRole('mechanik') && issue?.assigned_to === user?.id);
+  const canEditTimestamps = hasRole('admin');
 
   if (isLoading) {
     return (
