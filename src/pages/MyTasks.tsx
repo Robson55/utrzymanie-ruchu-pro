@@ -21,13 +21,30 @@ export default function MyTasks() {
       if (!user) return;
 
       try {
+        // First get all issue IDs assigned to current user
+        const { data: assignmentsData, error: assignmentsError } = await supabase
+          .from('issue_assignments')
+          .select('issue_id')
+          .eq('user_id', user.id);
+
+        if (assignmentsError) throw assignmentsError;
+
+        if (!assignmentsData || assignmentsData.length === 0) {
+          setTasks([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const issueIds = assignmentsData.map(a => a.issue_id);
+
+        // Fetch issues for those IDs
         const { data, error } = await supabase
           .from('issues')
           .select(`
             *,
             machine:machines(name, machine_number)
           `)
-          .eq('assigned_to', user.id)
+          .in('id', issueIds)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
