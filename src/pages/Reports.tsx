@@ -50,7 +50,7 @@ export default function Reports() {
           supabase
             .from('issues')
             .select('*')
-            .gte('created_at', daysAgo.toISOString()),
+            .gte('reported_at', daysAgo.toISOString()),
           supabase.from('machines').select('*'),
         ]);
 
