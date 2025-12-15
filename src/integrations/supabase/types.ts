@@ -212,6 +212,59 @@ export type Database = {
         }
         Relationships: []
       }
+      planned_works: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_weekly: boolean | null
+          machine_id: string
+          scheduled_date: string
+          status: string | null
+          title: string
+          updated_at: string
+          week_number: number | null
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_weekly?: boolean | null
+          machine_id: string
+          scheduled_date: string
+          status?: string | null
+          title: string
+          updated_at?: string
+          week_number?: number | null
+          year?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_weekly?: boolean | null
+          machine_id?: string
+          scheduled_date?: string
+          status?: string | null
+          title?: string
+          updated_at?: string
+          week_number?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planned_works_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
