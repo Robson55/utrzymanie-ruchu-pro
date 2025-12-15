@@ -37,6 +37,7 @@ import {
   Factory,
   FileText,
   Loader2,
+  Download,
   MapPin,
   Upload,
   Wrench,
@@ -308,6 +309,34 @@ export default function MachineDetail() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (issues.length === 0) {
+      toast.error('Brak zgłoszeń do eksportu');
+      return;
+    }
+
+    const exportData = issues.map((issue) => ({
+      'Tytuł': issue.title,
+      'Opis': issue.description,
+      'Status': issue.status,
+      'Priorytet': issue.priority,
+      'Data zgłoszenia': issue.reported_at ? format(new Date(issue.reported_at), 'dd.MM.yyyy HH:mm', { locale: pl }) : '',
+      'Data zakończenia': issue.completed_at ? format(new Date(issue.completed_at), 'dd.MM.yyyy HH:mm', { locale: pl }) : '',
+      'Czas reakcji (min)': issue.reaction_time_minutes || '',
+      'Czas przypisania (min)': issue.assignment_time_minutes || '',
+      'Czas pracy (min)': issue.work_time_minutes || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Zgłoszenia');
+    
+    const fileName = `${machine?.machine_number}_zgloszenia_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    
+    toast.success('Wyeksportowano do pliku Excel');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -513,25 +542,37 @@ export default function MachineDetail() {
               Wszystkie zgłoszenia dla tej maszyny
             </CardDescription>
           </div>
-          {isManager() && (
-            <div>
-              <input
-                type="file"
-                id="excel-import"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
+          <div className="flex gap-2">
+            {issues.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => document.getElementById('excel-import')?.click()}
+                onClick={handleExportExcel}
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Import Excel
+                <Download className="h-4 w-4 mr-2" />
+                Eksport Excel
               </Button>
-            </div>
-          )}
+            )}
+            {isManager() && (
+              <>
+                <input
+                  type="file"
+                  id="excel-import"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('excel-import')?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import Excel
+                </Button>
+              </>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {issues.length === 0 ? (
