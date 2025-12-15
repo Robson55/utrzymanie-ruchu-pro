@@ -58,12 +58,6 @@ export function AppSidebar() {
 
   const mainMenuItems = [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: LayoutDashboard,
-      visible: true,
-    },
-    {
       title: 'Moje zadania',
       url: '/my-tasks',
       icon: CheckSquare,
