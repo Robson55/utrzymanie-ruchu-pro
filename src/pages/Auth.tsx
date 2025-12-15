@@ -5,21 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Wrench, Loader2 } from 'lucide-react';
 
+const EMAIL_DOMAIN = '@bericap.local';
+
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, signIn, signUp, isLoading } = useAuth();
+  const { user, signIn, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupFullName, setSignupFullName] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -29,46 +26,27 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!loginUsername.trim()) {
+      toast.error('Wprowadź login');
+      return;
+    }
+    
     setIsSubmitting(true);
 
-    const { error } = await signIn(loginEmail, loginPassword);
+    // Convert username to internal email format
+    const email = `${loginUsername.toLowerCase().trim()}${EMAIL_DOMAIN}`;
+    const { error } = await signIn(email, loginPassword);
 
     if (error) {
       toast.error('Błąd logowania', {
         description: error.message === 'Invalid login credentials'
-          ? 'Nieprawidłowy email lub hasło'
+          ? 'Nieprawidłowy login lub hasło'
           : error.message,
       });
     } else {
       toast.success('Zalogowano pomyślnie');
       navigate('/');
-    }
-
-    setIsSubmitting(false);
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    if (signupPassword.length < 6) {
-      toast.error('Hasło musi mieć minimum 6 znaków');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { error } = await signUp(signupEmail, signupPassword, signupFullName);
-
-    if (error) {
-      if (error.message.includes('already registered')) {
-        toast.error('Ten email jest już zarejestrowany');
-      } else {
-        toast.error('Błąd rejestracji', { description: error.message });
-      }
-    } else {
-      toast.success('Konto utworzone!', {
-        description: 'Możesz się teraz zalogować',
-      });
     }
 
     setIsSubmitting(false);
@@ -97,94 +75,43 @@ export default function Auth() {
 
         <Card className="border-border/50 shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle>Witaj</CardTitle>
+            <CardTitle>Logowanie</CardTitle>
             <CardDescription>
-              Zaloguj się lub utwórz konto
+              Wprowadź dane logowania
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Logowanie</TabsTrigger>
-                <TabsTrigger value="signup">Rejestracja</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login" className="mt-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="jan.kowalski@firma.pl"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Hasło</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    Zaloguj się
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup" className="mt-4">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Imię i nazwisko</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Jan Kowalski"
-                      value={signupFullName}
-                      onChange={(e) => setSignupFullName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="jan.kowalski@firma.pl"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Hasło</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="Minimum 6 znaków"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    Utwórz konto
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-username">Login</Label>
+                <Input
+                  id="login-username"
+                  type="text"
+                  placeholder="np. jkowalski"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Hasło</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Zaloguj się
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
