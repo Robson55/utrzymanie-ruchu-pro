@@ -49,6 +49,9 @@ const MANUFACTURER_OPTIONS = [
   'Bortolinkemo',
   'Grun&Koder',
   'Eckel&Sohn',
+  'CMS',
+  'Contexo',
+  'PM Projektowanie',
 ];
 
 export default function Machines() {
