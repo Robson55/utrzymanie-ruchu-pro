@@ -24,46 +24,73 @@ serve(async (req) => {
       }
     });
 
-    // Verify the requesting user is an admin
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
-      return new Response(
-        JSON.stringify({ error: 'Brak autoryzacji' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    // Parse request body first to check for bootstrap mode
+    const body = await req.json();
+    const { email, password, fullName, roles, bootstrapSecret } = body;
     
-    if (authError || !requestingUser) {
-      console.error('Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Nieprawidłowy token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if requesting user is admin
-    const { data: adminRole } = await supabaseAdmin
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', requestingUser.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-
-    if (!adminRole) {
-      console.error('User is not admin:', requestingUser.id);
-      return new Response(
-        JSON.stringify({ error: 'Brak uprawnień administratora' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse request body
-    const { email, password, fullName, roles } = await req.json();
+    // Bootstrap mode: allow creating first admin without auth
+    const BOOTSTRAP_SECRET = 'BERICAP_INIT_2024';
+    let isBootstrap = false;
     
+    if (bootstrapSecret === BOOTSTRAP_SECRET) {
+      // Check if any admin exists
+      const { data: existingAdmins } = await supabaseAdmin
+        .from('user_roles')
+        .select('id')
+        .eq('role', 'admin')
+        .limit(1);
+      
+      if (!existingAdmins || existingAdmins.length === 0) {
+        console.log('Bootstrap mode: creating first admin');
+        isBootstrap = true;
+      } else {
+        console.error('Bootstrap mode rejected: admin already exists');
+        return new Response(
+          JSON.stringify({ error: 'Administrator już istnieje. Użyj normalnego logowania.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    
+    if (!isBootstrap) {
+      // Verify the requesting user is an admin
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        console.error('No authorization header provided');
+        return new Response(
+          JSON.stringify({ error: 'Brak autoryzacji' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+      
+      if (authError || !requestingUser) {
+        console.error('Auth error:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Nieprawidłowy token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if requesting user is admin
+      const { data: adminRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', requestingUser.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!adminRole) {
+        console.error('User is not admin:', requestingUser.id);
+        return new Response(
+          JSON.stringify({ error: 'Brak uprawnień administratora' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     console.log('Creating user:', { email, fullName, roles });
 
     if (!email || !password) {
