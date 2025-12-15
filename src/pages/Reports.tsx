@@ -8,6 +8,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Issue, Machine, STATUS_LABELS, PRIORITY_LABELS } from '@/types/database';
 import {
   BarChart,
@@ -22,7 +30,9 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { Loader2, TrendingUp, Clock, Wrench, AlertCircle } from 'lucide-react';
+import { Loader2, TrendingUp, Clock, Wrench, AlertCircle, Timer } from 'lucide-react';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
 export default function Reports() {
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -99,6 +109,48 @@ export default function Reports() {
     .filter((m) => m.issues > 0)
     .sort((a, b) => b.issues - a.issues)
     .slice(0, 10);
+
+  // Work time per machine
+  const machineWorkTimeData = machines
+    .map((machine) => {
+      const machineIssues = issues.filter(
+        (i) => i.machine_id === machine.id && i.work_time_minutes
+      );
+      const totalWorkTime = machineIssues.reduce(
+        (sum, i) => sum + (i.work_time_minutes || 0),
+        0
+      );
+      const avgWorkTime =
+        machineIssues.length > 0
+          ? Math.round(totalWorkTime / machineIssues.length)
+          : 0;
+      return {
+        name: machine.name,
+        machine_number: machine.machine_number,
+        totalMinutes: totalWorkTime,
+        avgMinutes: avgWorkTime,
+        issueCount: machineIssues.length,
+      };
+    })
+    .filter((m) => m.totalMinutes > 0)
+    .sort((a, b) => b.totalMinutes - a.totalMinutes)
+    .slice(0, 15);
+
+  // Detailed work time per issue
+  const issueWorkTimeData = issues
+    .filter((i) => i.work_time_minutes && i.status === 'zakonczone')
+    .map((issue) => {
+      const machine = machines.find((m) => m.id === issue.machine_id);
+      return {
+        title: issue.title,
+        machine: machine?.name || 'Nieznana',
+        machine_number: machine?.machine_number || '-',
+        workTime: issue.work_time_minutes || 0,
+        completedAt: issue.completed_at,
+      };
+    })
+    .sort((a, b) => b.workTime - a.workTime)
+    .slice(0, 20);
 
   const COLORS = ['hsl(217, 91%, 60%)', 'hsl(262, 83%, 58%)', 'hsl(38, 92%, 50%)', 'hsl(142, 76%, 36%)'];
   const PRIORITY_COLORS = ['hsl(142, 76%, 36%)', 'hsl(217, 91%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(0, 84%, 60%)'];
@@ -293,6 +345,125 @@ export default function Reports() {
                   <Bar dataKey="issues" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Work Time by Machine Chart */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Timer className="h-5 w-5" />
+            Czas pracy wg maszyny
+          </CardTitle>
+          <CardDescription>
+            Łączny i średni czas realizacji zgłoszeń na maszynach
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {machineWorkTimeData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Brak danych do wyświetlenia
+            </div>
+          ) : (
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={machineWorkTimeData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    type="number" 
+                    stroke="hsl(var(--muted-foreground))"
+                    tickFormatter={(value) => `${value}min`}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    width={150}
+                    stroke="hsl(var(--muted-foreground))"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, name: string) => {
+                      if (name === 'totalMinutes') {
+                        return [
+                          value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}min` : `${value}min`,
+                          'Łączny czas',
+                        ];
+                      }
+                      return [
+                        value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}min` : `${value}min`,
+                        'Średni czas',
+                      ];
+                    }}
+                  />
+                  <Legend 
+                    formatter={(value) => value === 'totalMinutes' ? 'Łączny czas' : 'Średni czas'}
+                  />
+                  <Bar dataKey="totalMinutes" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="totalMinutes" />
+                  <Bar dataKey="avgMinutes" fill="hsl(var(--info))" radius={[0, 4, 4, 0]} name="avgMinutes" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Detailed Work Time Table */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5" />
+            Szczegóły czasów realizacji zgłoszeń
+          </CardTitle>
+          <CardDescription>
+            Lista zakończonych zgłoszeń z czasami wykonania
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {issueWorkTimeData.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Brak danych do wyświetlenia
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tytuł zgłoszenia</TableHead>
+                    <TableHead>Maszyna</TableHead>
+                    <TableHead>Nr maszyny</TableHead>
+                    <TableHead className="text-right">Czas realizacji</TableHead>
+                    <TableHead>Data zakończenia</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {issueWorkTimeData.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium max-w-[300px] truncate">
+                        {item.title}
+                      </TableCell>
+                      <TableCell>{item.machine}</TableCell>
+                      <TableCell>{item.machine_number}</TableCell>
+                      <TableCell className="text-right font-mono">
+                        {item.workTime >= 60
+                          ? `${Math.floor(item.workTime / 60)}h ${item.workTime % 60}min`
+                          : `${item.workTime}min`}
+                      </TableCell>
+                      <TableCell>
+                        {item.completedAt
+                          ? format(new Date(item.completedAt), 'dd MMM yyyy, HH:mm', { locale: pl })
+                          : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
