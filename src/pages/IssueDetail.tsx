@@ -68,6 +68,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 export default function IssueDetail() {
+  // Component for displaying and managing issue details
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, roles, isManager, hasRole } = useAuth();
