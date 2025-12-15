@@ -37,6 +37,7 @@ import {
   CircleCheck,
   PlayCircle,
   CheckCircle2,
+  CalendarClock,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -72,6 +73,12 @@ export function AppSidebar() {
       title: 'Maszyny',
       url: '/machines',
       icon: Cog,
+      visible: true,
+    },
+    {
+      title: 'Planowane prace',
+      url: '/planned-works',
+      icon: CalendarClock,
       visible: true,
     },
     {

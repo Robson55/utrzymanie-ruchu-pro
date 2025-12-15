@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Calendar,
+  CalendarClock,
   Cog,
   Edit,
   ExternalLink,
@@ -40,6 +41,7 @@ import {
   Upload,
   Wrench,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -74,6 +76,7 @@ export default function MachineDetail() {
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [plannedWorks, setPlannedWorks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Edit dialog state
@@ -113,6 +116,20 @@ export default function MachineDetail() {
 
       if (issuesData) {
         setIssues(issuesData as Issue[]);
+      }
+
+      // Fetch planned works
+      const { data: plannedData } = await supabase
+        .from('planned_works')
+        .select('*')
+        .eq('machine_id', id)
+        .eq('status', 'zaplanowane')
+        .gte('scheduled_date', new Date().toISOString().split('T')[0])
+        .order('scheduled_date', { ascending: true })
+        .limit(5);
+
+      if (plannedData) {
+        setPlannedWorks(plannedData);
       }
     } catch (error) {
       console.error('Error fetching machine:', error);
@@ -392,6 +409,59 @@ export default function MachineDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Planned Works */}
+      {plannedWorks.length > 0 && (
+        <Card className="border-border/50">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5" />
+                Planowane prace
+              </CardTitle>
+              <CardDescription>
+                Nadchodzące zaplanowane prace dla tej maszyny
+              </CardDescription>
+            </div>
+            <Link to="/planned-works">
+              <Button variant="outline" size="sm">
+                Zobacz wszystkie
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {plannedWorks.map((work) => (
+                <div
+                  key={work.id}
+                  className="p-3 rounded-lg border border-border/50 bg-secondary/20"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-foreground">{work.title}</h4>
+                      {work.description && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {work.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        {format(new Date(work.scheduled_date), 'dd.MM.yyyy', { locale: pl })}
+                      </Badge>
+                      {work.week_number && (
+                        <Badge variant="secondary">
+                          Tydz. {work.week_number}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Issues History */}
       <Card className="border-border/50">

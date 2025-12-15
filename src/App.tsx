@@ -17,6 +17,7 @@ import MachineDetail from "@/pages/MachineDetail";
 import MyTasks from "@/pages/MyTasks";
 import Users from "@/pages/Users";
 import Reports from "@/pages/Reports";
+import PlannedWorks from "@/pages/PlannedWorks";
 import DisplayBoard from "@/pages/DisplayBoard";
 import NotFound from "@/pages/NotFound";
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/my-tasks" element={<MyTasks />} />
               <Route path="/users" element={<Users />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/planned-works" element={<PlannedWorks />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
