@@ -19,6 +19,8 @@ import { Profile, AppRole, ROLE_LABELS } from '@/types/database';
 import { toast } from 'sonner';
 import { Loader2, Users as UsersIcon, Edit, Plus, UserPlus } from 'lucide-react';
 
+const EMAIL_DOMAIN = '@bericap.local';
+
 interface UserWithRoles extends Profile {
   roles: AppRole[];
 }
@@ -29,6 +31,15 @@ const ROLE_DESCRIPTIONS: Record<AppRole, string> = {
   kierownik_ur: 'Pełny dostęp: zgłaszanie, akceptacja, przypisywanie, raporty',
   mechanik: 'Może aktualizować status przypisanych zadań',
   admin: 'Pełny dostęp do systemu i zarządzania użytkownikami',
+};
+
+// Helper to extract username from internal email
+const extractUsername = (email: string | null): string => {
+  if (!email) return '';
+  if (email.endsWith(EMAIL_DOMAIN)) {
+    return email.replace(EMAIL_DOMAIN, '');
+  }
+  return email;
 };
 
 export default function Users() {
@@ -44,7 +55,7 @@ export default function Users() {
 
   // Add user dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
+  const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newFullName, setNewFullName] = useState('');
   const [newRoles, setNewRoles] = useState<AppRole[]>([]);
@@ -142,8 +153,15 @@ export default function Users() {
   };
 
   const handleCreateUser = async () => {
-    if (!newEmail || !newPassword || !newFullName) {
+    if (!newUsername || !newPassword || !newFullName) {
       toast.error('Wypełnij wszystkie pola');
+      return;
+    }
+
+    // Validate username format
+    const usernameRegex = /^[a-z0-9._-]+$/;
+    if (!usernameRegex.test(newUsername.toLowerCase())) {
+      toast.error('Login może zawierać tylko małe litery, cyfry, kropki, myślniki i podkreślenia');
       return;
     }
 
@@ -160,9 +178,12 @@ export default function Users() {
     setIsCreating(true);
 
     try {
+      // Convert username to internal email format
+      const email = `${newUsername.toLowerCase().trim()}${EMAIL_DOMAIN}`;
+      
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: {
-          email: newEmail,
+          email,
           password: newPassword,
           fullName: newFullName,
           roles: newRoles,
@@ -178,7 +199,7 @@ export default function Users() {
       }
 
       toast.success('Użytkownik utworzony', {
-        description: `${newFullName} (${newEmail})`,
+        description: `${newFullName} (${newUsername})`,
       });
       
       setAddDialogOpen(false);
@@ -193,7 +214,7 @@ export default function Users() {
   };
 
   const resetAddForm = () => {
-    setNewEmail('');
+    setNewUsername('');
     setNewPassword('');
     setNewFullName('');
     setNewRoles([]);
@@ -242,7 +263,7 @@ export default function Users() {
                       {user.full_name || 'Bez nazwy'}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {user.email}
+                      Login: {extractUsername(user.email)}
                     </p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {user.roles.length === 0 ? (
@@ -335,14 +356,17 @@ export default function Users() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="username">Login *</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="jan.kowalski@firma.pl"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="jkowalski"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value.toLowerCase())}
               />
+              <p className="text-xs text-muted-foreground">
+                Tylko małe litery, cyfry, kropki, myślniki i podkreślenia
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Hasło *</Label>
