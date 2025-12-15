@@ -238,22 +238,59 @@ export default function MachineDetail() {
     e.target.value = '';
   };
 
+  const parseDate = (dateStr: string): string => {
+    if (!dateStr) return new Date().toISOString();
+    
+    // Try parsing as ISO format (YYYY-MM-DD)
+    let parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+    
+    // Try parsing DD.MM.YYYY or DD/MM/YYYY format
+    const parts = dateStr.split(/[.\/\-]/);
+    if (parts.length === 3) {
+      const [first, second, third] = parts;
+      // Check if first part is day (1-31) or year (4 digits)
+      if (first.length === 4) {
+        // YYYY-MM-DD
+        parsed = new Date(parseInt(first), parseInt(second) - 1, parseInt(third));
+      } else if (third.length === 4) {
+        // DD.MM.YYYY or DD/MM/YYYY
+        parsed = new Date(parseInt(third), parseInt(second) - 1, parseInt(first));
+      } else if (third.length === 2) {
+        // DD.MM.YY - assume 20xx
+        parsed = new Date(2000 + parseInt(third), parseInt(second) - 1, parseInt(first));
+      }
+      
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    }
+    
+    // Fallback to current date
+    return new Date().toISOString();
+  };
+
   const handleImport = async () => {
     if (!machine || !user || importPreview.length === 0) return;
 
     setIsImporting(true);
 
     try {
-      const issuesToInsert = importPreview.map(item => ({
-        machine_id: machine.id,
-        title: item.description.substring(0, 100),
-        description: item.description,
-        reported_by: user.id,
-        reported_at: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
-        status: 'zakonczone' as const,
-        priority: 'sredni' as const,
-        completed_at: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
-      }));
+      const issuesToInsert = importPreview.map(item => {
+        const parsedDate = parseDate(item.date);
+        return {
+          machine_id: machine.id,
+          title: item.description.substring(0, 100),
+          description: item.description,
+          reported_by: user.id,
+          reported_at: parsedDate,
+          status: 'zakonczone' as const,
+          priority: 'sredni' as const,
+          completed_at: parsedDate,
+        };
+      });
 
       const { error } = await supabase.from('issues').insert(issuesToInsert);
 
