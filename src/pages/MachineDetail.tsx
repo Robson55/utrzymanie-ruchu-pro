@@ -37,8 +37,10 @@ import {
   FileText,
   Loader2,
   MapPin,
+  Upload,
   Wrench,
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { format, formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -68,7 +70,7 @@ const MANUFACTURER_OPTIONS = [
 export default function MachineDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isManager } = useAuth();
+  const { isManager, user } = useAuth();
 
   const [machine, setMachine] = useState<Machine | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -77,6 +79,11 @@ export default function MachineDetail() {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<Array<{ description: string; date: string }>>([]);
   const [editName, setEditName] = useState('');
   const [editMachineNumber, setEditMachineNumber] = useState('');
   const [editLocation, setEditLocation] = useState('');
@@ -165,6 +172,81 @@ export default function MachineDetail() {
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        // Skip header row if exists, parse data
+        const rows = jsonData.slice(1).filter(row => row.length >= 2);
+        const preview = rows.map(row => {
+          // Expecting: machine_number, description, date
+          const description = String(row[1] || '').trim();
+          let date = '';
+          
+          // Handle Excel date serial numbers
+          if (typeof row[2] === 'number') {
+            const excelDate = XLSX.SSF.parse_date_code(row[2]);
+            date = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+          } else if (row[2]) {
+            date = String(row[2]).trim();
+          }
+
+          return { description, date };
+        }).filter(item => item.description);
+
+        setImportPreview(preview);
+        setImportDialogOpen(true);
+      } catch (error) {
+        console.error('Error parsing Excel:', error);
+        toast.error('Błąd podczas parsowania pliku Excel');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+  };
+
+  const handleImport = async () => {
+    if (!machine || !user || importPreview.length === 0) return;
+
+    setIsImporting(true);
+
+    try {
+      const issuesToInsert = importPreview.map(item => ({
+        machine_id: machine.id,
+        title: item.description.substring(0, 100),
+        description: item.description,
+        reported_by: user.id,
+        reported_at: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
+        status: 'zakonczone' as const,
+        priority: 'sredni' as const,
+        completed_at: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
+      }));
+
+      const { error } = await supabase.from('issues').insert(issuesToInsert);
+
+      if (error) throw error;
+
+      toast.success(`Zaimportowano ${importPreview.length} zgłoszeń`);
+      setImportDialogOpen(false);
+      setImportPreview([]);
+      fetchData();
+    } catch (error: any) {
+      console.error('Import error:', error);
+      toast.error('Błąd importu', { description: error.message });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -313,11 +395,32 @@ export default function MachineDetail() {
 
       {/* Issues History */}
       <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle>Historia zgłoszeń</CardTitle>
-          <CardDescription>
-            Wszystkie zgłoszenia dla tej maszyny
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Historia zgłoszeń</CardTitle>
+            <CardDescription>
+              Wszystkie zgłoszenia dla tej maszyny
+            </CardDescription>
+          </div>
+          {isManager() && (
+            <div>
+              <input
+                type="file"
+                id="excel-import"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('excel-import')?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import Excel
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {issues.length === 0 ? (
@@ -468,6 +571,56 @@ export default function MachineDetail() {
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import zgłoszeń z Excela</DialogTitle>
+            <DialogDescription>
+              Podgląd danych do zaimportowania ({importPreview.length} wierszy)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="text-sm text-muted-foreground mb-4">
+              Wymagany format: Numer maszyny | Opis zgłoszenia | Data (RRRR-MM-DD)
+            </div>
+            <div className="max-h-[300px] overflow-y-auto border rounded-md">
+              <table className="w-full text-sm">
+                <thead className="bg-muted sticky top-0">
+                  <tr>
+                    <th className="text-left p-2 font-medium">Opis</th>
+                    <th className="text-left p-2 font-medium w-28">Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.map((item, idx) => (
+                    <tr key={idx} className="border-t">
+                      <td className="p-2 truncate max-w-[300px]">{item.description}</td>
+                      <td className="p-2">{item.date || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setImportDialogOpen(false);
+                setImportPreview([]);
+              }}
+            >
+              Anuluj
+            </Button>
+            <Button onClick={handleImport} disabled={isImporting || importPreview.length === 0}>
+              {isImporting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Importuj {importPreview.length} zgłoszeń
             </Button>
           </DialogFooter>
         </DialogContent>
