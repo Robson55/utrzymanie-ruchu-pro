@@ -3,14 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
-import { Issue, IssueStatus, IssuePriority, IssueSubstatus, Profile } from '@/types/database';
+import { Issue, IssueStatus, IssuePriority, IssueSubstatus, Profile, IssueAssignment } from '@/types/database';
 import { Loader2, Wrench, User, Clock, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
+interface IssueWithAssignees extends Issue {
+  assignees?: Profile[];
+}
+
 interface MechanicWithIssues {
   mechanic: Profile;
-  issues: Issue[];
+  issues: IssueWithAssignees[];
 }
 
 export default function DisplayBoard() {
@@ -49,15 +53,36 @@ export default function DisplayBoard() {
           machine:machines(name, machine_number)
         `)
         .in('status', ['zaakceptowane', 'w_realizacji'])
-        .not('assigned_to', 'is', null)
         .order('priority', { ascending: false });
 
-      
+      // Fetch all assignments for active issues
+      const { data: assignments } = await supabase
+        .from('issue_assignments')
+        .select('*');
 
       if (profiles && issues) {
+        // Create a map of issue_id to assignee user_ids
+        const issueAssignments: Record<string, string[]> = {};
+        (assignments || []).forEach(a => {
+          if (!issueAssignments[a.issue_id]) {
+            issueAssignments[a.issue_id] = [];
+          }
+          issueAssignments[a.issue_id].push(a.user_id);
+        });
+
+        // Filter issues that have at least one assignment
+        const assignedIssues = issues.filter(issue => 
+          issueAssignments[issue.id] && issueAssignments[issue.id].length > 0
+        );
+
         const result: MechanicWithIssues[] = profiles.map((profile) => ({
           mechanic: profile as Profile,
-          issues: issues.filter((i) => i.assigned_to === profile.id) as unknown as Issue[],
+          issues: assignedIssues
+            .filter((i) => issueAssignments[i.id]?.includes(profile.id))
+            .map(i => ({
+              ...i,
+              assignees: profiles.filter(p => issueAssignments[i.id]?.includes(p.id)) as Profile[]
+            })) as unknown as IssueWithAssignees[],
         }));
 
         // Sort by number of issues (descending) and then by name
@@ -68,7 +93,6 @@ export default function DisplayBoard() {
           return (a.mechanic.full_name || '').localeCompare(b.mechanic.full_name || '');
         });
 
-        
         setMechanicsWithIssues(result);
       }
 
@@ -157,6 +181,12 @@ export default function DisplayBoard() {
                       <span>{(issue.machine as any)?.name}</span>
                       <span className="text-xs">({(issue.machine as any)?.machine_number})</span>
                     </div>
+                    {issue.assignees && issue.assignees.length > 1 && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
+                        <User className="h-3 w-3" />
+                        <span>Razem z: {issue.assignees.filter(a => a.id !== mechanic.id).map(a => a.full_name).join(', ')}</span>
+                      </div>
+                    )}
                     <StatusBadge
                       status={issue.status as IssueStatus}
                       substatus={issue.substatus as IssueSubstatus}
