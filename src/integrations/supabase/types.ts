@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      issue_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          issue_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          issue_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          issue_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_assignments_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_attachments: {
         Row: {
           file_name: string

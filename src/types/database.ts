@@ -37,6 +37,16 @@ export interface Machine {
   updated_at: string;
 }
 
+export interface IssueAssignment {
+  id: string;
+  issue_id: string;
+  user_id: string;
+  assigned_at: string;
+  assigned_by: string;
+  // Joined data
+  assignee?: Profile;
+}
+
 export interface Issue {
   id: string;
   machine_id: string;
@@ -47,7 +57,7 @@ export interface Issue {
   substatus: IssueSubstatus | null;
   reported_by: string;
   accepted_by: string | null;
-  assigned_to: string | null;
+  assigned_to: string | null; // Legacy - single assignment
   reported_at: string;
   accepted_at: string | null;
   started_at: string | null;
@@ -62,7 +72,8 @@ export interface Issue {
   machine?: Machine;
   reporter?: Profile;
   acceptor?: Profile;
-  assignee?: Profile;
+  assignee?: Profile; // Legacy - single assignment
+  assignments?: IssueAssignment[]; // New - multiple assignments
 }
 
 export interface IssueStatusHistory {

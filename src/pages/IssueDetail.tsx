@@ -43,9 +43,11 @@ import {
   IssueSubstatus,
   IssuePriority,
   IssueStatusHistory,
+  IssueAssignment,
   Profile,
   SUBSTATUS_LABELS,
 } from '@/types/database';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   ArrowLeft,
   Calendar,
@@ -73,13 +75,14 @@ export default function IssueDetail() {
   const [issue, setIssue] = useState<Issue | null>(null);
   const [history, setHistory] = useState<IssueStatusHistory[]>([]);
   const [mechanics, setMechanics] = useState<{ id: string; profile: Profile }[]>([]);
+  const [assignments, setAssignments] = useState<IssueAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Dialog states
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
-  const [selectedMechanic, setSelectedMechanic] = useState('');
+  const [selectedMechanics, setSelectedMechanics] = useState<string[]>([]);
   const [selectedSubstatus, setSelectedSubstatus] = useState<IssueSubstatus>('aktywne');
   const [statusComment, setStatusComment] = useState('');
   
@@ -146,6 +149,30 @@ export default function IssueDetail() {
           setHistory(historyData as unknown as IssueStatusHistory[]);
         }
 
+        // Fetch issue assignments (multiple mechanics)
+        const { data: assignmentsData } = await supabase
+          .from('issue_assignments')
+          .select('*')
+          .eq('issue_id', id);
+
+        if (assignmentsData && assignmentsData.length > 0) {
+          const assigneeIds = assignmentsData.map(a => a.user_id);
+          const { data: assigneeProfiles } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', assigneeIds);
+          
+          const profileMap = (assigneeProfiles || []).reduce((acc, p) => ({ ...acc, [p.id]: p }), {} as Record<string, Profile>);
+          
+          setAssignments(assignmentsData.map(a => ({
+            ...a,
+            assignee: profileMap[a.user_id]
+          })) as IssueAssignment[]);
+          
+          // Pre-select current assignments for dialog
+          setSelectedMechanics(assignmentsData.map(a => a.user_id));
+        }
+
         // Fetch mechanics for assignment
         const { data: mechanicsData } = await supabase
           .from('user_roles')
@@ -209,26 +236,48 @@ export default function IssueDetail() {
   };
 
   const handleAssign = async () => {
-    if (!issue || !user || !selectedMechanic) return;
+    if (!issue || !user || selectedMechanics.length === 0) return;
     setIsUpdating(true);
 
     try {
+      // Delete existing assignments
+      await supabase
+        .from('issue_assignments')
+        .delete()
+        .eq('issue_id', issue.id);
+
+      // Insert new assignments
+      const assignmentInserts = selectedMechanics.map(mechanicId => ({
+        issue_id: issue.id,
+        user_id: mechanicId,
+        assigned_by: user.id,
+      }));
+
       const { error } = await supabase
-        .from('issues')
-        .update({ assigned_to: selectedMechanic })
-        .eq('id', issue.id);
+        .from('issue_assignments')
+        .insert(assignmentInserts);
 
       if (error) throw error;
 
-      const mechanic = mechanics.find((m) => m.id === selectedMechanic);
+      // Update legacy assigned_to to first mechanic for backwards compatibility
+      await supabase
+        .from('issues')
+        .update({ assigned_to: selectedMechanics[0] })
+        .eq('id', issue.id);
+
+      const assignedNames = selectedMechanics
+        .map(id => mechanics.find(m => m.id === id)?.profile.full_name)
+        .filter(Boolean)
+        .join(', ');
+
       await supabase.from('issue_status_history').insert({
         issue_id: issue.id,
         status: issue.status as IssueStatus,
         changed_by: user.id,
-        comment: `Przypisano do: ${mechanic?.profile.full_name}`,
+        comment: `Przypisano do: ${assignedNames}`,
       });
 
-      toast.success('Przypisano mechanika');
+      toast.success('Przypisano mechaników');
       setAssignDialogOpen(false);
       window.location.reload();
     } catch (error: any) {
@@ -444,18 +493,18 @@ export default function IssueDetail() {
     );
   }
 
+  const isAssignedMechanic = hasRole('mechanik') && assignments.some(a => a.user_id === user?.id);
+  
   const canAccept = isManager() && issue.status === 'nowe';
-  const canAssign = isManager() && issue.status === 'zaakceptowane';
+  const canAssign = isManager() && (issue.status === 'zaakceptowane' || issue.status === 'w_realizacji');
   const canStartWork =
-    hasRole('mechanik') &&
-    issue.assigned_to === user?.id &&
+    isAssignedMechanic &&
     issue.status === 'zaakceptowane';
   const canChangeSubstatus =
-    hasRole('mechanik') &&
-    issue.assigned_to === user?.id &&
+    isAssignedMechanic &&
     issue.status === 'w_realizacji';
   const canComplete =
-    (hasRole('mechanik') && issue.assigned_to === user?.id && issue.status === 'w_realizacji') ||
+    (isAssignedMechanic && issue.status === 'w_realizacji') ||
     isManager();
   const canDelete = isManager() && issue.status !== 'usuniete';
 
@@ -498,31 +547,41 @@ export default function IssueDetail() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Przypisz mechanika</DialogTitle>
+                  <DialogTitle>Przypisz mechaników</DialogTitle>
                   <DialogDescription>
-                    Wybierz mechanika do tego zadania
+                    Wybierz mechaników do tego zadania (max. 3)
                   </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                  <Select value={selectedMechanic} onValueChange={setSelectedMechanic}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Wybierz mechanika" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mechanics.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.profile.full_name || m.profile.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="py-4 space-y-3 max-h-[300px] overflow-y-auto">
+                  {mechanics.map((m) => (
+                    <div key={m.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id={`mechanic-${m.id}`}
+                        checked={selectedMechanics.includes(m.id)}
+                        disabled={!selectedMechanics.includes(m.id) && selectedMechanics.length >= 3}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedMechanics(prev => [...prev, m.id]);
+                          } else {
+                            setSelectedMechanics(prev => prev.filter(id => id !== m.id));
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`mechanic-${m.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                      >
+                        {m.profile.full_name || m.profile.email}
+                      </label>
+                    </div>
+                  ))}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
                     Anuluj
                   </Button>
-                  <Button onClick={handleAssign} disabled={!selectedMechanic || isUpdating}>
-                    Przypisz
+                  <Button onClick={handleAssign} disabled={selectedMechanics.length === 0 || isUpdating}>
+                    Przypisz ({selectedMechanics.length})
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -694,8 +753,19 @@ export default function IssueDetail() {
                 <p className="mt-1">{(issue.reporter as any)?.full_name || '-'}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Przypisany do</Label>
-                <p className="mt-1">{(issue.assignee as any)?.full_name || 'Nie przypisano'}</p>
+                <Label className="text-muted-foreground">Przypisani mechanicy</Label>
+                {assignments.length > 0 ? (
+                  <div className="mt-1 space-y-1">
+                    {assignments.map((a) => (
+                      <p key={a.id} className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {a.assignee?.full_name || 'Nieznany'}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-muted-foreground">Nie przypisano</p>
+                )}
               </div>
             </div>
 
