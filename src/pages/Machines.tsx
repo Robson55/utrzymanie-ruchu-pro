@@ -48,6 +48,7 @@ const MANUFACTURER_OPTIONS = [
   'Caprint',
   'Bortolinkemo',
   'Grun&Koder',
+  'Eckel&Sohn',
 ];
 
 export default function Machines() {
