@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Profile, AppRole, ROLE_LABELS } from '@/types/database';
 import { toast } from 'sonner';
-import { Loader2, Users as UsersIcon, Edit, Plus, UserPlus } from 'lucide-react';
+import { Loader2, Users as UsersIcon, Edit, Plus, UserPlus, KeyRound } from 'lucide-react';
 
 const EMAIL_DOMAIN = '@bericap.local';
 
@@ -61,6 +61,12 @@ export default function Users() {
   const [newFullName, setNewFullName] = useState('');
   const [newRoles, setNewRoles] = useState<AppRole[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Reset password dialog
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserWithRoles | null>(null);
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const allRoles: AppRole[] = [
     'kierownik_zmiany',
@@ -235,6 +241,53 @@ export default function Users() {
     setNewRoles([]);
   };
 
+  const handleOpenResetPassword = (user: UserWithRoles) => {
+    setResetPasswordUser(user);
+    setResetNewPassword('');
+    setResetPasswordDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordUser || !resetNewPassword) return;
+
+    if (resetNewPassword.length < 6) {
+      toast.error('Hasło musi mieć minimum 6 znaków');
+      return;
+    }
+
+    setIsResettingPassword(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: {
+          userId: resetPasswordUser.id,
+          newPassword: resetNewPassword,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Błąd podczas zmiany hasła');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success('Hasło zmienione', {
+        description: `Hasło dla ${resetPasswordUser.full_name || extractUsername(resetPasswordUser.email)} zostało zmienione`,
+      });
+      
+      setResetPasswordDialogOpen(false);
+      setResetPasswordUser(null);
+      setResetNewPassword('');
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      toast.error('Błąd', { description: error.message });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -292,15 +345,26 @@ export default function Users() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditUser(user)}
-                    disabled={user.id === currentUser?.id}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edytuj
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenResetPassword(user)}
+                      disabled={user.id === currentUser?.id}
+                    >
+                      <KeyRound className="h-4 w-4 mr-2" />
+                      Zmień hasło
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                      disabled={user.id === currentUser?.id}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edytuj
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -436,6 +500,49 @@ export default function Users() {
             <Button onClick={handleCreateUser} disabled={isCreating}>
               {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Utwórz użytkownika
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={(open) => {
+        setResetPasswordDialogOpen(open);
+        if (!open) {
+          setResetPasswordUser(null);
+          setResetNewPassword('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Zmień hasło użytkownika</DialogTitle>
+            <DialogDescription>
+              Ustaw nowe hasło dla: {resetPasswordUser?.full_name || extractUsername(resetPasswordUser?.email)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="resetNewPassword">Nowe hasło *</Label>
+              <Input
+                id="resetNewPassword"
+                type="password"
+                placeholder="Minimum 6 znaków"
+                value={resetNewPassword}
+                onChange={(e) => setResetNewPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setResetPasswordDialogOpen(false);
+              setResetPasswordUser(null);
+              setResetNewPassword('');
+            }}>
+              Anuluj
+            </Button>
+            <Button onClick={handleResetPassword} disabled={isResettingPassword}>
+              {isResettingPassword && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Zmień hasło
             </Button>
           </DialogFooter>
         </DialogContent>
