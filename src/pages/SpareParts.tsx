@@ -23,7 +23,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -105,6 +104,7 @@ export default function SpareParts() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const [statusFilter, setStatusFilter] = useState<SparePartStatus | 'all'>('all');
 
@@ -209,6 +209,7 @@ export default function SpareParts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spare-parts'] });
       toast({ title: 'Status zaktualizowany' });
+      setIsStatusDialogOpen(false);
       setSelectedPart(null);
       setNewStatus('');
       setExpectedDeliveryDate(undefined);
@@ -244,6 +245,13 @@ export default function SpareParts() {
     });
   };
 
+  const handleOpenStatusDialog = (part: SparePart) => {
+    setSelectedPart(part);
+    setNewStatus('');
+    setExpectedDeliveryDate(undefined);
+    setIsStatusDialogOpen(true);
+  };
+
   const getNextStatuses = (currentStatus: SparePartStatus): SparePartStatus[] => {
     switch (currentStatus) {
       case 'nowe':
@@ -265,88 +273,161 @@ export default function SpareParts() {
           <p className="text-muted-foreground">Zarządzanie zapotrzebowaniem na części zamienne</p>
         </div>
         {canAddParts && (
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Dodaj zapotrzebowanie
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Nowe zapotrzebowanie</DialogTitle>
-                <DialogDescription>
-                  Dodaj część zamienną do zamówienia
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nazwa części *</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Nazwa części zamiennej"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Opis</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Dodatkowy opis lub specyfikacja"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Ilość</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min={1}
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="machine">Maszyna (opcjonalnie)</Label>
-                  <Select value={machineId} onValueChange={setMachineId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Wybierz maszynę" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Brak</SelectItem>
-                      {machines?.map((machine) => (
-                        <SelectItem key={machine.id} value={machine.id}>
-                          {machine.name} ({machine.machine_number})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Uwagi</Label>
-                  <Textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Dodatkowe uwagi"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Anuluj
-                  </Button>
-                  <Button type="submit" disabled={addMutation.isPending}>
-                    {addMutation.isPending ? 'Dodawanie...' : 'Dodaj'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Dodaj zapotrzebowanie
+          </Button>
         )}
       </div>
+
+      {/* Add Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nowe zapotrzebowanie</DialogTitle>
+            <DialogDescription>
+              Dodaj część zamienną do zamówienia
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nazwa części *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nazwa części zamiennej"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Opis</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Dodatkowy opis lub specyfikacja"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Ilość</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min={1}
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="machine">Maszyna (opcjonalnie)</Label>
+              <Select value={machineId} onValueChange={setMachineId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz maszynę" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Brak</SelectItem>
+                  {machines?.map((machine) => (
+                    <SelectItem key={machine.id} value={machine.id}>
+                      {machine.name} ({machine.machine_number})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Uwagi</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Dodatkowe uwagi"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Anuluj
+              </Button>
+              <Button type="submit" disabled={addMutation.isPending}>
+                {addMutation.isPending ? 'Dodawanie...' : 'Dodaj'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Change Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Zmień status części</DialogTitle>
+            <DialogDescription>
+              {selectedPart?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nowy status</Label>
+              <Select
+                value={newStatus}
+                onValueChange={(v) => setNewStatus(v as SparePartStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedPart && getNextStatuses(selectedPart.status).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {STATUS_LABELS[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newStatus === 'zamowione' && (
+              <div className="space-y-2">
+                <Label>Przewidywana data dostawy</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !expectedDeliveryDate && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {expectedDeliveryDate
+                        ? format(expectedDeliveryDate, 'dd.MM.yyyy', { locale: pl })
+                        : 'Wybierz datę'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={expectedDeliveryDate}
+                      onSelect={setExpectedDeliveryDate}
+                      locale={pl}
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button
+              onClick={handleStatusUpdate}
+              disabled={!newStatus || updateStatusMutation.isPending}
+            >
+              {updateStatusMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
@@ -449,83 +530,13 @@ export default function SpareParts() {
                         {canManageParts && (
                           <TableCell>
                             {getNextStatuses(part.status).length > 0 && (
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setSelectedPart(part)}
-                                  >
-                                    Zmień status
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Zmień status części</DialogTitle>
-                                    <DialogDescription>
-                                      {part.name}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <Label>Nowy status</Label>
-                                      <Select
-                                        value={newStatus}
-                                        onValueChange={(v) => setNewStatus(v as SparePartStatus)}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Wybierz status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {getNextStatuses(part.status).map((status) => (
-                                            <SelectItem key={status} value={status}>
-                                              {STATUS_LABELS[status]}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                    {newStatus === 'zamowione' && (
-                                      <div className="space-y-2">
-                                        <Label>Przewidywana data dostawy</Label>
-                                        <Popover>
-                                          <PopoverTrigger asChild>
-                                            <Button
-                                              variant="outline"
-                                              className={cn(
-                                                'w-full justify-start text-left font-normal',
-                                                !expectedDeliveryDate && 'text-muted-foreground'
-                                              )}
-                                            >
-                                              <CalendarIcon className="mr-2 h-4 w-4" />
-                                              {expectedDeliveryDate
-                                                ? format(expectedDeliveryDate, 'dd.MM.yyyy', { locale: pl })
-                                                : 'Wybierz datę'}
-                                            </Button>
-                                          </PopoverTrigger>
-                                          <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                              mode="single"
-                                              selected={expectedDeliveryDate}
-                                              onSelect={setExpectedDeliveryDate}
-                                              locale={pl}
-                                              className="pointer-events-auto"
-                                            />
-                                          </PopoverContent>
-                                        </Popover>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <DialogFooter>
-                                    <Button
-                                      onClick={handleStatusUpdate}
-                                      disabled={!newStatus || updateStatusMutation.isPending}
-                                    >
-                                      {updateStatusMutation.isPending ? 'Zapisywanie...' : 'Zapisz'}
-                                    </Button>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenStatusDialog(part)}
+                              >
+                                Zmień status
+                              </Button>
                             )}
                           </TableCell>
                         )}
