@@ -54,6 +54,7 @@ const LOCATION_OPTIONS = [
   'Pośrednia hala',
   'Drukarnia',
   'Hala składarek',
+  'Warsztat',
 ];
 
 const MACHINE_TYPE_OPTIONS = ['INJ', 'ASS', 'PRI'];
