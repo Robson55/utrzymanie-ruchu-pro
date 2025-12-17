@@ -324,6 +324,71 @@ export type Database = {
         }
         Relationships: []
       }
+      spare_parts: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          delivered_at: string | null
+          description: string | null
+          expected_delivery_date: string | null
+          id: string
+          machine_id: string | null
+          name: string
+          notes: string | null
+          ordered_at: string | null
+          quantity: number
+          requested_at: string
+          requested_by: string
+          status: Database["public"]["Enums"]["spare_part_status"]
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          description?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          machine_id?: string | null
+          name: string
+          notes?: string | null
+          ordered_at?: string | null
+          quantity?: number
+          requested_at?: string
+          requested_by: string
+          status?: Database["public"]["Enums"]["spare_part_status"]
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          description?: string | null
+          expected_delivery_date?: string | null
+          id?: string
+          machine_id?: string | null
+          name?: string
+          notes?: string | null
+          ordered_at?: string | null
+          quantity?: number
+          requested_at?: string
+          requested_by?: string
+          status?: Database["public"]["Enums"]["spare_part_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spare_parts_machine_id_fkey"
+            columns: ["machine_id"]
+            isOneToOne: false
+            referencedRelation: "machines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -391,6 +456,7 @@ export type Database = {
         | "zakonczone"
         | "usuniete"
       issue_substatus: "aktywne" | "wstrzymane" | "przerwa" | "brak_czesci"
+      spare_part_status: "nowe" | "zaakceptowane" | "zamowione" | "dostarczone"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -534,6 +600,7 @@ export const Constants = {
         "usuniete",
       ],
       issue_substatus: ["aktywne", "wstrzymane", "przerwa", "brak_czesci"],
+      spare_part_status: ["nowe", "zaakceptowane", "zamowione", "dostarczone"],
     },
   },
 } as const
