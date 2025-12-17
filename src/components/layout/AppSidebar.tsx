@@ -38,6 +38,7 @@ import {
   PlayCircle,
   CheckCircle2,
   CalendarClock,
+  Package,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -80,6 +81,12 @@ export function AppSidebar() {
       url: '/reports',
       icon: BarChart3,
       visible: isManager(),
+    },
+    {
+      title: 'Części zamienne',
+      url: '/spare-parts',
+      icon: Package,
+      visible: hasRole('mechanik') || hasRole('kierownik_ur') || hasRole('admin'),
     },
   ];
 
