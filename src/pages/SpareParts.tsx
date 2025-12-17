@@ -25,6 +25,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -55,6 +65,7 @@ import {
   ShoppingCart,
   Truck,
   Clock,
+  Trash2,
 } from 'lucide-react';
 
 type SparePartStatus = 'nowe' | 'zaakceptowane' | 'zamowione' | 'dostarczone';
@@ -105,6 +116,7 @@ export default function SpareParts() {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<SparePart | null>(null);
   const [statusFilter, setStatusFilter] = useState<SparePartStatus | 'all'>('all');
 
@@ -121,6 +133,7 @@ export default function SpareParts() {
 
   const canAddParts = hasRole('mechanik') || hasRole('kierownik_ur') || hasRole('admin');
   const canManageParts = isManager();
+  const canDeleteParts = hasRole('admin');
 
   // Fetch spare parts
   const { data: spareParts, isLoading } = useQuery({
@@ -219,6 +232,26 @@ export default function SpareParts() {
     },
   });
 
+  // Delete spare part mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('spare_parts')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['spare-parts'] });
+      toast({ title: 'Usunięto część zamienną' });
+      setIsDeleteDialogOpen(false);
+      setSelectedPart(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Błąd', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const resetForm = () => {
     setName('');
     setDescription('');
@@ -250,6 +283,16 @@ export default function SpareParts() {
     setNewStatus('');
     setExpectedDeliveryDate(undefined);
     setIsStatusDialogOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (part: SparePart) => {
+    setSelectedPart(part);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (!selectedPart) return;
+    deleteMutation.mutate(selectedPart.id);
   };
 
   const getNextStatuses = (currentStatus: SparePartStatus): SparePartStatus[] => {
@@ -429,6 +472,27 @@ export default function SpareParts() {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usuń część zamienną</AlertDialogTitle>
+            <AlertDialogDescription>
+              Czy na pewno chcesz usunąć "{selectedPart?.name}"? Tej operacji nie można cofnąć.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Usuwanie...' : 'Usuń'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Filter */}
       <div className="flex gap-2 flex-wrap">
         <Button
@@ -529,15 +593,27 @@ export default function SpareParts() {
                         </TableCell>
                         {canManageParts && (
                           <TableCell>
-                            {getNextStatuses(part.status).length > 0 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOpenStatusDialog(part)}
-                              >
-                                Zmień status
-                              </Button>
-                            )}
+                            <div className="flex gap-2">
+                              {getNextStatuses(part.status).length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenStatusDialog(part)}
+                                >
+                                  Zmień status
+                                </Button>
+                              )}
+                              {canDeleteParts && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  onClick={() => handleOpenDeleteDialog(part)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
