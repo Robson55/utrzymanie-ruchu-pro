@@ -147,7 +147,7 @@ export default function DisplayBoard() {
         {mechanicsWithIssues.map(({ mechanic, issues }) => (
           <Card 
             key={mechanic.id} 
-            className={`border-2 ${issues.length > 0 ? 'border-primary/50' : 'border-border/30'}`}
+            className={`border-2 transition-colors ${issues.length > 0 ? 'border-destructive bg-destructive/5' : 'border-green-500 bg-green-500/5'}`}
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-xl">
