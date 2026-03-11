@@ -266,6 +266,10 @@ export default function SpareParts() {
       toast({ title: 'Podaj nazwę części', variant: 'destructive' });
       return;
     }
+    if (!machineId || machineId === 'none') {
+      toast({ title: 'Wybierz maszynę', variant: 'destructive' });
+      return;
+    }
     addMutation.mutate();
   };
 
