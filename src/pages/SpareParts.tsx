@@ -367,13 +367,12 @@ export default function SpareParts() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="machine">Maszyna (opcjonalnie)</Label>
-              <Select value={machineId} onValueChange={setMachineId}>
+              <Label htmlFor="machine">Maszyna *</Label>
+              <Select value={machineId} onValueChange={setMachineId} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Wybierz maszynę" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Brak</SelectItem>
                   {machines?.map((machine) => (
                     <SelectItem key={machine.id} value={machine.id}>
                       {machine.name} ({machine.machine_number})
