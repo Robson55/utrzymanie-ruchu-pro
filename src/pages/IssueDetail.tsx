@@ -195,7 +195,7 @@ export default function IssueDetail() {
           }
         }
       } catch (error) {
-        console.error('Error fetching issue:', error);
+        logError('IssueDetail.fetchIssue', error);
         toast.error('Błąd podczas ładowania zgłoszenia');
       } finally {
         setIsLoading(false);

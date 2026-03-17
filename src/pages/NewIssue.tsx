@@ -86,7 +86,7 @@ export default function NewIssue() {
       toast.success('Zgłoszenie zostało utworzone');
       navigate(`/issues/${data.id}`);
     } catch (error: any) {
-      console.error('Error creating issue:', error);
+      logError('NewIssue.createIssue', error);
       toast.error('Błąd podczas tworzenia zgłoszenia', {
         description: error.message,
       });

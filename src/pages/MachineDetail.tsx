@@ -318,7 +318,7 @@ export default function MachineDetail() {
       setImportPreview([]);
       fetchData();
     } catch (error: any) {
-      console.error('Import error:', error);
+      logError('MachineDetail.import', error);
       toast.error('Błąd importu', { description: error.message });
     } finally {
       setIsImporting(false);

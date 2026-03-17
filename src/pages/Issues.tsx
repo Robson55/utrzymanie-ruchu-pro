@@ -92,7 +92,7 @@ export default function Issues() {
 
         setIssues(issuesWithProfiles as unknown as Issue[]);
       } catch (error) {
-        console.error('Error fetching issues:', error);
+        logError('Issues.fetchIssues', error);
       } finally {
         setIsLoading(false);
       }

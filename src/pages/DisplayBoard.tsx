@@ -99,7 +99,7 @@ export default function DisplayBoard() {
 
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('DisplayBoard.fetchData', error);
     } finally {
       setIsLoading(false);
     }

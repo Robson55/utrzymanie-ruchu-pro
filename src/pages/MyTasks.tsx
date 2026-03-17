@@ -51,7 +51,7 @@ export default function MyTasks() {
         if (error) throw error;
         setTasks(data as unknown as Issue[]);
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        logError('MyTasks.fetchTasks', error);
       } finally {
         setIsLoading(false);
       }

@@ -58,7 +58,7 @@ export default function Reports() {
         if (issuesResult.data) setIssues(issuesResult.data as Issue[]);
         if (machinesResult.data) setMachines(machinesResult.data as Machine[]);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logError('Reports.fetchData', error);
       } finally {
         setIsLoading(false);
       }

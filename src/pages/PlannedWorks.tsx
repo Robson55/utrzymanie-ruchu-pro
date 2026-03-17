@@ -206,7 +206,7 @@ export default function PlannedWorks() {
       setDialogOpen(false);
       fetchData();
     } catch (error: any) {
-      console.error('Save error:', error);
+      logError('PlannedWorks.save', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsSaving(false);

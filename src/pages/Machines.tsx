@@ -88,7 +88,7 @@ export default function Machines() {
       if (error) throw error;
       setMachines(data as Machine[]);
     } catch (error) {
-      console.error('Error fetching machines:', error);
+      logError('Machines.fetchMachines', error);
     } finally {
       setIsLoading(false);
     }

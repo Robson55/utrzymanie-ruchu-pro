@@ -282,7 +282,7 @@ export default function Users() {
       setResetPasswordUser(null);
       setResetNewPassword('');
     } catch (error: any) {
-      console.error('Reset password error:', error);
+      logError('Users.resetPassword', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsResettingPassword(false);
