@@ -139,7 +139,7 @@ export default function MachineDetail() {
         setPlannedWorks(plannedData);
       }
     } catch (error) {
-      console.error('Error fetching machine:', error);
+      logError('MachineDetail.fetchMachine', error);
     } finally {
       setIsLoading(false);
     }
