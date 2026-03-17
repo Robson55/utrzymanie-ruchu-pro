@@ -126,7 +126,7 @@ export default function PlannedWorks() {
       setWorks(worksWithMachines);
       setMachines(machinesRes.data as Machine[]);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('PlannedWorks.fetchData', error);
       toast.error('Błąd podczas ładowania danych');
     } finally {
       setIsLoading(false);
