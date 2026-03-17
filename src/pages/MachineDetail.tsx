@@ -233,7 +233,7 @@ export default function MachineDetail() {
         setImportPreview(preview);
         setImportDialogOpen(true);
       } catch (error) {
-        console.error('Error parsing Excel:', error);
+        logError('MachineDetail.parseExcel', error);
         toast.error('Błąd podczas parsowania pliku Excel');
       }
     };
