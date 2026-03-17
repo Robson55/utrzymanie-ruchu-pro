@@ -40,7 +40,7 @@ export default function NewIssue() {
         .order('name');
 
       if (error) {
-        console.error('Error fetching machines:', error);
+        logError('NewIssue.fetchMachines', error);
       } else {
         setMachines(data as Machine[]);
       }
