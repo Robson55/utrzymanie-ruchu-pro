@@ -252,22 +252,36 @@ export default function MachineDetail() {
     // Try parsing DD.MM.YYYY or DD/MM/YYYY format
     const parts = dateStr.split(/[.\/\-]/);
     if (parts.length === 3) {
-      const [first, second, third] = parts;
-      // Check if first part is day (1-31) or year (4 digits)
-      if (first.length === 4) {
-        // YYYY-MM-DD
-        parsed = new Date(parseInt(first), parseInt(second) - 1, parseInt(third));
-      } else if (third.length === 4) {
-        // DD.MM.YYYY or DD/MM/YYYY
-        parsed = new Date(parseInt(third), parseInt(second) - 1, parseInt(first));
-      } else if (third.length === 2) {
-        // DD.MM.YY - assume 20xx
-        parsed = new Date(2000 + parseInt(third), parseInt(second) - 1, parseInt(first));
+      // Validate all parts are numeric
+      if (!parts.every(p => /^\d+$/.test(p))) {
+        return new Date().toISOString();
       }
       
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString();
+      const [first, second, third] = parts;
+      let year: number, month: number, day: number;
+      
+      if (first.length === 4) {
+        [year, month, day] = [parseInt(first, 10), parseInt(second, 10), parseInt(third, 10)];
+      } else if (third.length === 4) {
+        [day, month, year] = [parseInt(first, 10), parseInt(second, 10), parseInt(third, 10)];
+      } else if (third.length === 2) {
+        [day, month, year] = [parseInt(first, 10), parseInt(second, 10), 2000 + parseInt(third, 10)];
+      } else {
+        return new Date().toISOString();
       }
+      
+      // Validate ranges
+      if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) {
+        return new Date().toISOString();
+      }
+      
+      parsed = new Date(year, month - 1, day);
+      // Verify the date is real (catches Feb 30, etc.)
+      if (parsed.getMonth() !== month - 1 || isNaN(parsed.getTime())) {
+        return new Date().toISOString();
+      }
+      
+      return parsed.toISOString();
     }
     
     // Fallback to current date
