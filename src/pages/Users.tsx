@@ -228,7 +228,7 @@ export default function Users() {
       resetAddForm();
       fetchUsers();
     } catch (error: any) {
-      console.error('Create user error:', error);
+      logError('Users.createUser', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsCreating(false);
