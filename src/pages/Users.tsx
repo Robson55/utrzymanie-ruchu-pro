@@ -105,7 +105,7 @@ export default function Users() {
 
       setUsers(usersWithRoles);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logError('Users.fetchUsers', error);
     } finally {
       setIsLoading(false);
     }
