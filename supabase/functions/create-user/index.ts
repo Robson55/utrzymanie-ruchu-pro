@@ -29,7 +29,14 @@ serve(async (req) => {
     const { email, password, fullName, roles, bootstrapSecret } = body;
     
     // Bootstrap mode: allow creating first admin without auth
-    const BOOTSTRAP_SECRET = 'BERICAP_INIT_2024';
+    const BOOTSTRAP_SECRET = Deno.env.get('BOOTSTRAP_SECRET');
+    if (bootstrapSecret && !BOOTSTRAP_SECRET) {
+      console.error('BOOTSTRAP_SECRET not configured');
+      return new Response(
+        JSON.stringify({ error: 'Bootstrap mode not available' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     let isBootstrap = false;
     
     if (bootstrapSecret === BOOTSTRAP_SECRET) {

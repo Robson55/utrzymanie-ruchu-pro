@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -125,7 +126,7 @@ export default function PlannedWorks() {
       setWorks(worksWithMachines);
       setMachines(machinesRes.data as Machine[]);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('PlannedWorks.fetchData', error);
       toast.error('Błąd podczas ładowania danych');
     } finally {
       setIsLoading(false);
@@ -205,7 +206,7 @@ export default function PlannedWorks() {
       setDialogOpen(false);
       fetchData();
     } catch (error: any) {
-      console.error('Save error:', error);
+      logError('PlannedWorks.save', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsSaving(false);

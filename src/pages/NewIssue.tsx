@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,7 +40,7 @@ export default function NewIssue() {
         .order('name');
 
       if (error) {
-        console.error('Error fetching machines:', error);
+        logError('NewIssue.fetchMachines', error);
       } else {
         setMachines(data as Machine[]);
       }
@@ -85,7 +86,7 @@ export default function NewIssue() {
       toast.success('Zgłoszenie zostało utworzone');
       navigate(`/issues/${data.id}`);
     } catch (error: any) {
-      console.error('Error creating issue:', error);
+      logError('NewIssue.createIssue', error);
       toast.error('Błąd podczas tworzenia zgłoszenia', {
         description: error.message,
       });

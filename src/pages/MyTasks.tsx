@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -50,7 +51,7 @@ export default function MyTasks() {
         if (error) throw error;
         setTasks(data as unknown as Issue[]);
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        logError('MyTasks.fetchTasks', error);
       } finally {
         setIsLoading(false);
       }

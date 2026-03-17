@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -57,7 +58,7 @@ export default function Reports() {
         if (issuesResult.data) setIssues(issuesResult.data as Issue[]);
         if (machinesResult.data) setMachines(machinesResult.data as Machine[]);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logError('Reports.fetchData', error);
       } finally {
         setIsLoading(false);
       }

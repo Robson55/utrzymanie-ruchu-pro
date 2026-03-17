@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,7 +88,7 @@ export default function Machines() {
       if (error) throw error;
       setMachines(data as Machine[]);
     } catch (error) {
-      console.error('Error fetching machines:', error);
+      logError('Machines.fetchMachines', error);
     } finally {
       setIsLoading(false);
     }

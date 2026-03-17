@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -194,7 +195,7 @@ export default function IssueDetail() {
           }
         }
       } catch (error) {
-        console.error('Error fetching issue:', error);
+        logError('IssueDetail.fetchIssue', error);
         toast.error('Błąd podczas ładowania zgłoszenia');
       } finally {
         setIsLoading(false);

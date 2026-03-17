@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
@@ -98,7 +99,7 @@ export default function DisplayBoard() {
 
       setLastUpdate(new Date());
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logError('DisplayBoard.fetchData', error);
     } finally {
       setIsLoading(false);
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +105,7 @@ export default function Users() {
 
       setUsers(usersWithRoles);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logError('Users.fetchUsers', error);
     } finally {
       setIsLoading(false);
     }
@@ -227,7 +228,7 @@ export default function Users() {
       resetAddForm();
       fetchUsers();
     } catch (error: any) {
-      console.error('Create user error:', error);
+      logError('Users.createUser', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsCreating(false);
@@ -281,7 +282,7 @@ export default function Users() {
       setResetPasswordUser(null);
       setResetNewPassword('');
     } catch (error: any) {
-      console.error('Reset password error:', error);
+      logError('Users.resetPassword', error);
       toast.error('Błąd', { description: error.message });
     } finally {
       setIsResettingPassword(false);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/errorHandler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -71,7 +72,7 @@ export default function Dashboard() {
           setRecentIssues(recent as unknown as Issue[]);
         }
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        logError('Dashboard.fetchData', error);
       } finally {
         setIsLoading(false);
       }
